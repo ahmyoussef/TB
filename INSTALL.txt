@@ -1,0 +1,13 @@
+Download and install the latest version of Python. Add the full path to the installation directory to the Path. The windows installer can do this for you.
+https://www.python.org/downloads/release/python-3910/
+
+Download and install Tesseract OCR. Add the fulll path to the installation directory to the Path.
+https://github.com/UB-Mannheim/tesseract/wiki
+
+From the command line, run the following:
+
+py -m pip install --upgrade pip
+py -m pip install clipboard
+py -m pip install pytesseract
+py -m pip install opencv-python
+py -m pip install pyautogui

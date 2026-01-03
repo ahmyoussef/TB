@@ -1,0 +1,52 @@
+usage: tb.py [-h] --config <config file.cfg> [--verbose] [--calibrate]
+                         [--capture] [--process] [--clickWait <milloiseconds>]
+                         [--date <date>] [--start_date <date>]
+                         [--end_date <date>] [--eod] [--summary]
+                         [--citadels] [--skip_empty]
+						 
+Explanation:
+	--config <config file.cfg>		Mandatory. Contains the configuration parameters required to run this program. 
+									Look in the /config directory for 	an example file
+
+	--calibrate						Optional. Helper function to determine the screen capture and mouse-click coordinates.
+
+	--capture						Optional. Must be set when capturing chests from the Gifts screen.
+	--clickWait						Optional. Controls how long to wait between mouse-clicks while running in capture mode. Default is 300 ms.
+
+	--process						Optional. Must be set when running end-of-day processing, summary processing, or citadel capture processing.
+	--eod							Optional. Tells the program to run end of day processing. Used together with --process.
+	--summary						Optional. Tells the program to run chest summary processing. Used together with --process. 
+									If no date range is set all files in the /final directory will be used.
+	--citadels						Optional. Tells the program to run citadel summary processing. Used together with --process.
+									If no date range is set all files in the /final directory will be used.
+	--skip_empty					Optional. If set, the output from a citadel summmary will not list players who have not done any citadels
+	
+	--date							Optional. Used during end of day processing to run eod for that date. Tags the output with <date>.
+	--start_date, --end-date		Optional but must be set together. 
+									If set with --eod it will trigger a re-run of eod for that date range using files from the /archive directory. 
+									If set with --summary it will generate a chest summary for the provided date range using files from the /final directory
+									If set with --citadels it will generate a citadel summary for the provided date range using files from the /final directory
+	
+	--verbose						Optional. Prints debug information during processing.
+	-h	 							Optional. Prints the above help information
+	
+
+Read the /config/MY_CLAN.cfg file for an explanation of what the configuration parameters are and what they mean.
+
+
+Typical use cases:
+
+Calibrate the screen coordinates for screen capturing and mouse click. This is an important step to get the correct screen coordinates. The various x,y values need to be manually copied to the config file.
+py .\tb.py --config '..\config\MY_CLAN.cfg' --calibrate
+
+Capture chests:
+py .\tb.py --config '..\config\MY_CLAN.cfg' --capture
+
+End of day processing. Once an EOD has been run and before you capture data for a new day the data file pointed to in the config file needs to be cleared.
+py .\tb.py --config '..\config\MY_CLAN.cfg' --process --eod --date <todays date>
+
+Generate a summary report:
+py .\tb.py --config '..\config\MY_CLAN.cfg' --process --summary
+
+End of day processing and summary generation:
+py .\tb.py --config '..\config\MY_CLAN.cfg' --process --eod --summary --date <todays date>
