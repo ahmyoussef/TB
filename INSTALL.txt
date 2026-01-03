@@ -1,13 +1,225 @@
-Download and install the latest version of Python. Add the full path to the installation directory to the Path. The windows installer can do this for you.
-https://www.python.org/downloads/release/python-3910/
+===========================================================
+https://www.youtube.com/watch?v=CDKj89Oo2gM
+===========================================================
+1. Installation Manual at english
+2. Installationsanleitung Deutsch
+3. Update 03-11-2025 => 17.11.2025
+4. Program-Informations
+5. Chest Counter extra informations
+===========================================================
+===========================================================
 
-Download and install Tesseract OCR. Add the fulll path to the installation directory to the Path.
-https://github.com/UB-Mannheim/tesseract/wiki
+1. Installation Manual Chest-Counter 
+-------------------------------------
+Copy the complete folder "Chest-Counter" to your directory C:/
 
-From the command line, run the following:
+Go to the folder _Install and install Powershell-7, python,
+tesseract and meazure.
 
-py -m pip install --upgrade pip
-py -m pip install clipboard
-py -m pip install pytesseract
-py -m pip install opencv-python
-py -m pip install pyautogui
+- Open with an editor config/config.cfg and check all options.
+- Open with an editor scores-xxxx.csv & adjust points, if needed.
+- Open with an editor C:\Chest-Counter\bin\tb-c1-en.ps1 and edit
+  $clanname1 to $clanname4
+  if you have more than 1 clan to counter, than open 
+  tb-c2-en.ps1 to tb-c4-en.ps1 and edit the $clanname
+
+Search for "PowerShell 7 (x64)" and start with admin-rights
+and type: Set-ExecutionPolicy Unrestricted
+
+Type again in the command-line:
+Get-ExecutionPolicy -List
+That should be listed =>
+Scope ExecutionPolicy
+----- ---------------
+MachinePolicy       *
+   UserPolicy       *
+      Process       *
+  CurrentUser       *
+ LocalMachine       Unrestricted
+
+Close Powershell!
+
+- Go to c:\Chest-Counter\bin\
+  double-click Chest-Counter.ink <=> or Right-Click to the
+  file and add "To Start" or "task bar". Start it from there.
+
+Alternative Start-Command for Powershell:
+& "C:\Chest-Counter\bin\tb-c1-en.ps1"
+
+Important: Never remove the player unknown from the
+player list. [2] Summary Score overwrites existing
+files. Several summaries can be made per day,
+but the following must be done at the very end:
+Delete the file => datas/captured-datas.txt
+and copy the FINAL files to your folder + Delete =>
+datas/year-month-day_captured-datas_CLAN_FINAL.txt
+datas/year-month-day_TB_Chests_CLAN_FINAL.txt
+datas/year-month-day_TB_PlayerSummary_CLAN_FINAL.txt
+
+The total-datas.txt file in the data folder can be 
+evaluated at the end of the week, for example.
+
+Follow the instructions in the Graphic User Interface!
+
+===========================================================
+===========================================================
+
+2. Installationsanleitung Chest-Counter
+----------------------------------------
+Kopiere den kompletten Ordner "Chest-Counter" in Laufwerk C:/
+
+Gehe zum Ordner _Install & installiere Powershell-7, python,
+tesseract und optional meazure.
+
+- Öffne mit einem Editor config/config.cfg und prüfe alle Optionen.
+- Mit einem Editor können die scores-xxxx.csv geöffnet 
+  und nach bedarf angepasst werden.
+- Öffne mit einem Editor C:\Chest-Counter\bin\
+  tb-c1-en.ps1 und editiere $clanname1 bis $clanname4
+  wenn du mehr als einen clan zum zählen hast, dann öffne 
+  tb-c2-en.ps1 bis tb-c4-en.ps1 und editiere $clanname
+
+Suche nach "PowerShell 7 (x64)" und starte die PowerShell mit
+Adminrechten. Schreibe in die Kommandozeile:
+Set-ExecutionPolicy Unrestricted
+
+Gib folgendes erneut ein:
+Get-ExecutionPolicy -List
+Das sollte angezeigt werden!
+Scope ExecutionPolicy
+----- ---------------
+MachinePolicy       *
+   UserPolicy       *
+      Process       *
+  CurrentUser       *
+ LocalMachine       Unrestricted
+
+Schließe die PowerShell!
+
+- Gehe zu c:\Chest-Counter\bin\
+  Doppel-Klick auf Chest-Counter.ink <=> oder Rechtsklick auf die
+  Chest-Counter.ink-Datei und "An Start" oder "An Startleiste" 
+  anheften. Starte das Programm!
+
+Alternativer Startbefehl für die PowerShell Kommandozeile:
+& "C:\Chest-Counter\bin\tb-c1-en.ps1"
+
+Wichtig: Entferne niemals den Spieler unknown aus der
+Spielerliste. [2] Summary Score überschreibt vorhandene
+Dateien. Es können mehrere Summarys am Tag gemacht werden,
+aber für das absolute Ende muss folgendes ausgeführt werden:
+Lösche die Datei => datas/captured-datas.txt
+und kopiere die FINAL-Dateien zu deinem Ordner + Lösche =>
+datas/jahr-monat-tag_captured-datas_CLAN_FINAL.txt
+datas/jahr-monat-tag_TB_Chests_CLAN_FINAL.txt
+datas/jahr-monat-tag_TB_PlayerSummary_CLAN_FINAL.txt
+
+Die total-datas.txt im Datenordner kann zum Beispiel am
+Ende der Woche ausgewertet werden.
+
+Folge den Instruktionen im Grafik Benutzer Interface!
+
+===========================================================
+===========================================================
+
+3. Update 03-11-2025 => 06-11-2025
+----------------------------------
+
+- Your data folder should be empty
+- Make a backup from your existing config folder
+- copy the new files from bin/ to the existing folder bin/
+- Copy the new config folder over the existing
+
+- copy your x & y positions and all other modified Informations
+  from your backuped config/config.csv to the new configs
+- Rename archive to archive-c1
+- Rename working to working-c1
+- if you know what you doing, copy the correct archive- and
+  working-files to the correct archive-c? and
+  working-c?
+- copy the content from your secured scores.csv to the new
+  scores. Attention: There are new chest-names, dont delete!
+- copy your backuped scores.csv, fixwords.csv, players.csv to
+  configs/ and rename players.csv to players-c1.csv
+
++ Dein Ordner data sollte leer sein
++ Erstelle eine Sicherheitskopie vom aktuellen config Ordner
++ Kopiere deine neuen Dateien vom Ordner bin/ zum existierenden
+  Ordner bin/
++ Kopiere den neuen config ordner über den bestehenden
+
++ Kopiere die x & y Positionen und alle weiteren Informationen
+  aus der Sicherheitskopie von config/config.csv zu den neuen
+  Konfigurationen
++ Den Ordner archive zu archive-c1 umbennenen
++ Den Ordner working zu working-c1 umbennenen
++ Wenn du weißt was du tust, kannst du die korrekten archive-
+  und working-dateien in die korrekten neuen Ordner kopieren.
+  Wenn du dir nicht sicher bist, lass die dateien im Ordner.
++ Übertrage den Inhalt von deinen gesicherten scores.csv in die
+  vorhandenen scores. Achtung, es gibt neue Truhen in den scores!
++ Kopiere deine Sicherheitsdateien fixwords.csv, players.csv zu 
+  configs/ und benenne players.csv zu players-c1.csv um.
+
+===========================================================
+===========================================================
+
+4. Program-Informations
+------------------------
+GUI-Program en   = bin/tb-c1-en.ps1
+Main-Program     = bin/tb.py
+
+The Configuration = config/config.csv
+Playernames Datas = config/players.csv
+Wordphrase fixing = config/fixwords.csv
+Your Datas        = data/*
+
+- Dark Omen Event, Halloween Event: 
+Epic & Normal Chests have the same Source-Name. The
+epic chests get identified and becomes a new Source-Name.
+Halloween, New Source: Epic Jack Reaper Chest
+Dark Omen, New Source: Epic Dark Omen Arcane Chest
+
+Scores for the Chest-Points:
+scores-low.csv
+scores-high.csv
+scores-ultra.csv
+
+===========================================================
+===========================================================
+
+5. Chest Counter extra informations
+------------------------------------
+For the newest Version, see:
+https://aka.ms/pscore6
+https://www.python.org/downloads/
+https://github.com/tesseract-ocr/tesseract/releases/
+
+Never delete the player 'unknown' in the
+config/players.csv
+
+[2] Summary Score overwrites existing Summarys. You can do
+many summarys for a day, but at the final:
+delete the file => datas/captured-datas.txt
+and copy the FINAL-files to your secure-folder + delete =>
+datas/year-month-day_captured-datas_CLAN_FINAL.txt
+datas/year-month-day_TB_Chests_CLAN_FINAL.txt
+datas/year-month-day_TB_PlayerSummary_CLAN_FINAL.txt
+
+[6] Summary for a day with Year-Month-Day, but if the day
+is not into your archive, it does not work. If a player
+is missing, you get a information. You can add the player
+after the summary to the config/players.csv and can start the
+summary again. The one day summary files get overwritten
+with the new informations.
+
+No Standard-Installation? Open "bin/tb.py" with an editor
+and correct the path to tesseract. Standard =
+'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+correct path on the following files:
+bin\Chest-Counter.ink
+bin\tb-c1....c4.ps1
+config\config.cfg (c2-c4)
+
+===========================================================

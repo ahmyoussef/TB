@@ -1,5 +1,11 @@
+from logging import captureWarnings
+from pickle import NEWFALSE
+from posixpath import splitext
+from statistics import variance
+from pathlib import Path
 import sys
 import os
+import re
 import argparse
 import shutil
 import glob
@@ -8,28 +14,33 @@ from datetime import datetime
 from datetime import timedelta
 from difflib import SequenceMatcher as SM
 import time
-
 import cv2
 import numpy
 import pytesseract
+
+# ---------------- CHECK ABSOLUTE PATH -------------------------------------------------------
+
+# absolute path to tesseract.exe
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# ---------------- CHECK ABSOLUTE PATH END ---------------------------------------------------
+
 from PIL import ImageGrab
 import pyautogui, sys
 import pygetwindow
-
 
 # TBConfig ------------------------------------------------------------------------------------------------------
 class TBConfig(object):
     """ This class parses configuration parameters from the configuration file """
 # ------------------------------------------------------------------------------------------------------
     def __init__(self, config_file, clickWait):
-        
         config_kvp = {}
 
         try:
 
             with open(config_file) as cfp:
                 for cl, config_line in enumerate(cfp):
-                
+                    
                     kvp_string = config_line.strip()
                     if len(kvp_string) == 0 or kvp_string.find("#") > -1: # ignore empty lines and comments in config file
                         continue
@@ -41,11 +52,13 @@ class TBConfig(object):
             exit()
         else:
             self.datafile        = config_kvp.get('data','')
+            self.totalfile       = config_kvp.get('total','')
             self.working_dir     = config_kvp.get("working", '')
             self.archive_dir     = config_kvp.get("archive", '')
             self.final_dir       = config_kvp.get("final", '')
             self.player_file     = config_kvp.get('players', '')
             self.clan            = config_kvp.get('clan', '')
+            self.zip             = config_kvp.get('zip', '')
             self.quality_file    = config_kvp.get('quality', '')
             self.score_file      = config_kvp.get('score', '')
             self.fix_ocr_file    = config_kvp.get('fix_ocr', '')
@@ -56,12 +69,27 @@ class TBConfig(object):
             self.mx              = config_kvp.get('mx', '')
             self.my              = config_kvp.get('my', '')
             self.clickWait       = config_kvp.get('clickWait', clickWait)
-
-        if not self.datafile:
-            print("### No data file repository defined. Cannot proceed!")
-            exit()
-# TBConfig------------------------------------------------------------------------------------------------------
-
+            self.fixwords        = config_kvp.get('fixwords', '')
+            self.clangui         = config_kvp.get('clanname1', '')
+            self.clangui2        = config_kvp.get('clanname2', '')
+            self.clangui3        = config_kvp.get('clanname3', '')
+            self.clangui4        = config_kvp.get('clanname4', '')
+            self.pshellpath1     = config_kvp.get('pspath1', '')
+            self.pshellpath2     = config_kvp.get('pspath2', '')
+            self.pshellpath3     = config_kvp.get('pspath3', '')
+            self.pshellpath4     = config_kvp.get('pspath4', '')
+            
+            global clan1, clan2, clan3, clan4, clip, pshellpath1, pshellpath2, pshellpath3, pshellpath4
+            clip  = self.zip
+            clan1 = self.clangui
+            clan2 = self.clangui2
+            clan3 = self.clangui3
+            clan4 = self.clangui4
+            pshellpath1 = self.pshellpath1
+            pshellpath2 = self.pshellpath2
+            pshellpath3 = self.pshellpath3
+            pshellpath4 = self.pshellpath4
+                        
 # TBScreen ------------------------------------------------------------------------------------------------------
 class TBScreen(object):
     """ This class takes the screen capture and runs the OCR processing, and contains image processing functions """
@@ -85,7 +113,7 @@ class TBScreen(object):
     def ocr_core(self,img):
         text = pytesseract.image_to_string(img, lang='eng', config='--psm 12 --oem 1')
         return text
-# TBScreen ------------------------------------------------------------------------------------------------------
+
 
 # TBFixOCR ------------------------------------------------------------------------------------------------------
 class TBFixOCR(object):
@@ -98,7 +126,6 @@ class TBFixOCR(object):
 
         self.fixed = {}
         self.fix_ocr = {}
-
 
         if fix_ocr_file:
             with open(fix_ocr_file) as fp:
@@ -120,7 +147,6 @@ class TBFixOCR(object):
             return self.fixed.get(line1.lower())
         else:
             return ""
-# TBFixOCR ------------------------------------------------------------------------------------------------------
 
 # TBPlayer ------------------------------------------------------------------------------------------------------
 class TBPlayer(object):
@@ -151,7 +177,9 @@ class TBPlayer(object):
         if self.player_set_changed and self.player_file:
 
             while True:
-                save = input("\n### Player information has been updated during processing. Do you want to save it to the same file (<Enter>/n) ? ")
+                print("----------------- New Player! ------------------")
+                print("### Do you want to save him to the player-list ?\n")
+                save = input("### <Enter/y> or <n> ? ")
                 if len(save) == 0 or save == "y" or save == "n":
                     break
 
@@ -167,10 +195,9 @@ class TBPlayer(object):
                                 player_line += "," + alias
 
                         player_line += "\n"
-
                         pfp.writelines(player_line)
 
-                print("Updated player information has been saved to {}".format(self.player_file))
+                print("New Player has been saved to {}\n".format(self.player_file))
 
 # -------------------------------------------------------------------------------
     def validate(self, player, line):
@@ -199,13 +226,15 @@ class TBPlayer(object):
 
                 if not player.lower().startswith("fr") and not player.startswith("ro") and not player.startswith("om"):
 
-                    print("*** ERROR: Malformed record '{}' at line {} - it should have the format 'From : PlayerName'".format(player, line))
+                    print("*** ERROR: Malformed record '{}' at line {} - it".format(player, line))
+                    print("*** ERROR: should have the format 'From : PlayerName'")
                     success = False
 
                 elif player.lower().find("fr ") > -1 or player.lower().find("ro ") > -1 or player.find("om ") > -1:
                     splitter = " "
                 else:
-                    print("*** ERROR: Malformed record '{}' at line {} - it should have the format 'From : PlayerName'".format(player, line))
+                    print("*** ERROR: Malformed record '{}' at line {} - it".format(player, line))
+                    print("*** ERROR: should have the format 'From : PlayerName'")
                     success = False
 
             split_player = player.split(splitter, 1)
@@ -230,7 +259,8 @@ class TBPlayer(object):
                     best_score = tmp_score
 
             if best_score > 0.75:
-                print("Player {} mapped to {} triggered by FUZZY MATCH: {}".format(player, best_string, best_score))
+                print("\nFUZZY LOGIC: Player {}".format(player))
+                print("MAPPED TO  : Player {}".format(best_string))
                 player = best_string # set player to the best matched string
 
             else:
@@ -238,9 +268,11 @@ class TBPlayer(object):
                 tmp_player = self.player_kvp.get(player.lower())
 
                 if tmp_player == None: # alias for this player is not defined
-                    print("*** ERROR: Unknown player name '{}' at line {} - this should be added to the players file".format(player, line))
-
-                    player_name = input("\nEnter the correct name for the player (hit <Enter>) if '{}' is correct or '-' to stop processing): ".format(player)).strip()
+                    print("\n* ATTENTION: UNKNOWN OR NEW PLAYER")
+                    print("- Press <Enter> if player '{}' is correct".format(player))
+                    print("- Or type the correct 'Name/Alias' for the player") 
+                    print("- Or type '-' to abort the process!\n")
+                    player_name = input("<Enter> or ['Name/Alias'] or ['-']: ".format(player)).strip()
                         
                     if player_name == "-":
                         success = False
@@ -270,11 +302,11 @@ class TBPlayer(object):
                                 success = False
 
                 else:
-                    print("Player {} mapped to {} triggered by PLAYER ALIAS: {}".format(player, tmp_player, player.lower()))
+                    print("\nFUZZY LOGIC: Player {}".format(player))
+                    print("MAPPED TO  : Player {}".format(tmp_player))
                     player = tmp_player # set player to the correct string
 
         return success, player
-# TBPlayer ------------------------------------------------------------------------------------------------------
 
 # TBChest ------------------------------------------------------------------------------------------------------
 class TBChest(object):
@@ -309,8 +341,8 @@ class TBChest(object):
         for quality_line in self.quality_kvp:
             if chest.find(quality_line) > -1:
                 if chest != self.quality_kvp[quality_line]:
-                    print("Chest name match: {} = {} triggered by {}".format(chest,self.quality_kvp[quality_line],quality_line))
-
+                    print("Chest name match: {} =".format(chest))
+                    print("{} triggered by {}".format(self.quality_kvp[quality_line],quality_line))
                 chest = self.quality_kvp[quality_line]
                 match = True
                 break
@@ -337,19 +369,18 @@ class TBChest(object):
             chest = chest.replace("chest", "Chest")
 
         return chest
-# TBChest ------------------------------------------------------------------------------------------------------
 
 # TBSource ------------------------------------------------------------------------------------------------------
 class TBSource(object):
     """ This class validates chest SOURCE information captured by the OCR """
 # ------------------------------------------------------------------------------------------------------    
     def validate(self, source, line):
-        
         success = True
 
         # Error checking in case of crappy OCR 
         if not source.startswith("Source") and not source.startswith("source") and not source.startswith("ource") and not source.startswith("urce") and not source.startswith("rce") and not source.startswith("ce"):
-            print("*** ERROR: Malformed record '{}' at line {} - it should have the format 'Source : Bank/Crypt/Chest/...'".format(source, line))
+            print("\n*** ERROR: Malformed record '{}' at line {}".format(source, line))
+            print("*** ERROR: It should have the format 'Source : Bank/Crypt/...'")
             return False, source
 
         # check all since the OCR sometimes gets it wrong
@@ -367,22 +398,14 @@ class TBSource(object):
             if source.find("Source ") or source.find("ource ") or source.find("urce ") or source.find("rce ") or source.find("ce "):
                 splitter = " "
             else:
-                print("*** ERROR: Malformed record '{}' at line {} - it should have the format 'Source : Bank/Crypt/Chest'".format(source, line))
+                print("\n*** ERROR: Malformed record '{}' at line {} ".format(source, line))
+                print("***ERROR: It should have the format 'Source : Bank/Crypt/...'")
                 return False, source
 
         split_source = source.split(splitter, 1)
         source = split_source[1].strip()
 
-        # add some processing to fix bad OCR scanning of chest names
-
-        pos1 = source.find(" Cr")
-        pos2 = source.find(" cr")
-        if pos2 > -1 or pos1 > -1:
-            if pos2 > -1:
-                pos1 = pos2
-            source = source[:pos1] + " Crypt"
-
-        # Crypt
+        # add some processing to fix bad OCR scanning of chest and Crypt names
         if source.endswith("Cr"):
             source += "ypt"
         elif source.endswith("Cry"):
@@ -441,14 +464,14 @@ class TBSource(object):
             source += "nk"
         elif source.endswith("Ban"):
             source += "k"
-
+		
         source = source.replace("crypt", "Crypt")
         source = source.replace("chest", "Chest")
         source = source.replace("citadel", "Citadel")
         source = source.replace("monster", "Monster")
             
         return True, source
-# TBSource ------------------------------------------------------------------------------------------------------
+
 
 # TBScore ------------------------------------------------------------------------------------------------------
 class TBScore(object):
@@ -501,7 +524,6 @@ class TBScore(object):
             print("\n*** Warning: The following chest types have no score assigned:")
             for chest in self.no_score:
                 print(chest)
-# TBScore ------------------------------------------------------------------------------------------------------
 
 # TBCalibration ------------------------------------------------------------------------------------------------------
 class TBCalibration(object):
@@ -513,53 +535,69 @@ class TBCalibration(object):
 # ------------------------------------------------------------------------------------------------------
     def run(self, config):
         print( "### SCREEN CAPTURE AND MOUSE CLICK CALIBRATION MODE ###")
-
+        print( "\n>> There are 2 Options for the calibration. Option <1>")
+        print( ">> to capture 'start text' position x1,y1 and to capture")
+        print( ">> 'end text' position x2,y2 // Option <2> to capture the")
+        print( ">> position for the OPEN Button.\n")
+        print( "++ See the example-image to find text-field-position at: ")
+        print( "++ /config/TBCorrect_Screenshot_Example.jpg")
+        print( "\n>> If you have the text-field-positions, you must start")
+        print( ">> the Option <2> to find the coordinates for the")
+        print( ">> [OPEN] Button to collect the chests.\n")
+        print( ">> You can also use the program MEAZURE400x64. You can")
+        print( ">> find them into the folder _INSTALL => Install and")
+        print( ">> install & start the Program. It is really helpful!")
+        
         while True:
-
+            
             choice = ""
-            while True:
-                choice = input("Calibrate screen capture rectangle (1) or mouse click position (2) (Hit <Enter> to stop calibration) ? ")
-                if len(choice) == 0 or choice == "1" or choice == "2" or choice == "-":
+            while True:                
+                print("\n>> Capture-Mode1: Find text-field position <1>")
+                print(">> Capture-Mode2: Find OPEN-Button position <2>\n")
+                choice = input("** <1> or <2> or <Enter,-,x> to stop calibration) ? ")
+                if len(choice) == 0 or choice == "1" or choice == "2" or choice == "-" or choice == "x":
                     break
 
-            if len(choice) == 0 or choice == "-": # stop
+            if len(choice) == 0 or choice == "-" or choice == "x": # stop
                 break
             elif choice == "1":
-
+                
                 while True:
-
-                    print( "### CALIBRATE CAPTURE RECTANGLE ###")
-             
+                    
+                    print( "\n\n#########################################")
+                    print( "### CALIBRATE CAPTURE RECTANGLE X1,Y1 ###")
+                    print( "#########################################\n")
+                    print( ">> Only Position the mouse at the UPPER LEFT corner to")
+                    print( ">> capture the first chest-text and than press <Enter>\n")
                     pyautogui.moveTo(int(config.x1), int(config.y1))
-                    input("Position the mouse at the UPPER LEFT corner of what you want to capture, then hit <Enter>...")
+                    input("** If you are ready, press <Enter>")
                     lx, uy = pyautogui.position()
-                    print("Your mouse is now at position {}, {}".format(lx, uy))
-
+                    print(">> Recorded position x:{}, y:{}".format(lx, uy))
+                    
+                    print( "\n\n#########################################")
+                    print( "### CALIBRATE CAPTURE RECTANGLE X2,Y2 ###")
+                    print( "#########################################\n")
+                    print( ">> Only Position the mouse at the LOWER RIGHT corner to")
+                    print( ">> capture the last chest-text and than press <Enter>")
+                    print( ">> IMPORTANT! Remember, that there are long texts, so")
+                    print( ">> scroll far to the right to capture the text.\n")
                     pyautogui.moveTo(int(config.x2), int(config.y2))
-                    input("Position the mouse at the LOWER RIGHT corner of what you want to capture, then hit <Enter>...")
+                    input("** If you are ready, press <Enter>")
                     rx, ly = pyautogui.position()
-                    print("Your mouse is now at position {}, {}".format(rx, ly))
+                    print(">> Recorded position x:{}, y:{}".format(rx, ly))
 
                     x1 = lx
                     y1 = uy
                     x2 = rx
                     y2 = ly
 
-                    print("Taking a calibration screenshot for region ({},{}) ({},{})...".format(x1,y1,x2,y2))
                     image = self.screen.get_screenshot(x1, y1, x2, y2)
-                    print("Done!")
-
-                    image.save('TBCalibration_Screenshot.png')
-
-                    print("Some image processing...")
+                    image.save('../config/TBCalibration_Screenshot.png')
                     image = self.screen.get_grayscale(numpy.array(image))
-                    print("Done!")
-
-                    print("Performing OCR analysis...")
                     capture = self.screen.ocr_core(image)
-                    print("Done!")
-
-                    print("Captured data in unprocessed format:")
+                    
+                    print("\n\n===============================================")
+                    print(">> Check Captured data with your xy-positions:")
         
                     raw_rows = capture.split("\n")
                     rows = list()
@@ -569,40 +607,52 @@ class TBCalibration(object):
                             continue
                         rows.append(row)
                     for row in rows:
-                        print(row)
-        
-                    print("\nScreenshot image saved to TBCalibration_Screenshot.png\n")
-
+                        print(">> {}".format(row))
+                    
+                    print("===============================================")
+                    print(">> Go to the folder config/ and Check your   <<")
+                    print(">> saved TBCalibration_Screenshot.png with   <<")
+                    print(">> the TBCorrect_Screenshot_Example.png      <<")
+                    print("===============================================")
+                    
                     while True:
-                        proceed = input("Are you happy with these coordinates (<Enter>/n) ? ")
+                        print("### Are you happy with the result & coordinates?\n")
+                        proceed = input("** <Enter> or <n> ? ")
                         if proceed == "n" or len(proceed) == 0:
                             break
 
                     if proceed != "n":
                         break
-
-                print("### LAST USED RECTANGLE COORDINATES: x1={} y1={} x2={} y2={}".format(x1,y1,x2,y2))
-                print("### Add this to the capture configuration file:")
-                print("x1   = {}".format(x1))
-                print("y1   = {}".format(y1))
-                print("x2   = {}".format(x2))
-                print("y2   = {}".format(y2))
+                print("\n>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<")
+                print(">> Add the coordinates to the configuration file.")
+                print(">> Open the file: Chest-Counter/config/config.csv")
+                print(">> x1   = {}".format(x1))
+                print(">> y1   = {}".format(y1))
+                print(">> x2   = {}".format(x2))
+                print(">> y2   = {}".format(y2))
+                print(">>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<\n")
 
             elif choice == "2": # mouse position calibration for auto clicks
 
                 while True:
 
-                    print( "### CALIBRATE MOUSE CLICK POSITION ###")
-
+                    print( "\n############################################")
+                    print( "### CALIBRATE MOUSE CLICK POSITION MX,MY ###")
+                    print( "############################################\n")
+                    print( ">> Move the mouse over the OPEN Button and")
+                    print( ">> press <Enter> to get the Button-coordinates.\n")
                     pyautogui.moveTo(int(config.mx), int(config.my))
-                    input("Position the mouse at the position where you want it to click, then hit <Enter>...")
+                    input("** If you are ready, press <Enter>")
                     lx, ly = pyautogui.position()
-                    print("Your mouse is at position {}, {}".format(lx, ly))
+                    print(">> Recorded position mx:{}, my:{}".format(lx, ly))
 
                     mx = lx
                     my = ly
 
-                    click = input("Hit <Enter> to perform a test click, or any other character + <Enter> to skip the click")
+                    print("\n### Press <Enter> to perform a test click or")
+                    print("### type any other character and <Enter> to abort")
+                    print("### ATTENTION! The test-click opens the chest!\n")
+                    click = input("** <Enter> for test click or <other key> ? ")
 
                     if len(click) == 0:
                         hwndThis = pygetwindow.getActiveWindow()
@@ -610,18 +660,22 @@ class TBCalibration(object):
                         hwndThis.activate()
 
                     while True:
-                        proceed = input("Are you happy with these mouse click coordinates (<Enter>/n) ? ")
+                        print("\n##################################")
+                        print("### Are you happy with the result?")
+                        print("##################################\n")
+                        proceed = input("** <Enter> or <n> ? ")
                         if proceed == "n" or len(proceed) == 0:
                             break
 
                     if proceed != "n":
                         break
-
-                print("### LAST NOUSE CLICK COORDINATES: mx={} my={}".format(mx, my))
-                print("### Add this to the capture configuration file to enable clicking:")
-                print("mx       = {}".format(mx))
-                print("my       = {}".format(my))
-# TBCalibration ------------------------------------------------------------------------------------------------------
+                
+                print("\n>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<")
+                print(">> Add the coordinates to the configuration file.")
+                print(">> Open the file: Chest-Counter/config/config.cfg")
+                print(">> mx       = {}".format(mx))
+                print(">> my       = {}".format(my))
+                print(">>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<\n\n\n")
 
 # TBCapture ------------------------------------------------------------------------------------------------------
 class TBCapture(object):
@@ -654,6 +708,7 @@ class TBCapture(object):
 
         self.wfile = open(workfile, 'w')
         self.sfile = open(config.datafile,'a')
+        self.tfile = open(config.totalfile,'a')
         self.cfile = open(capturefile, 'w')
 
         self.records = list()
@@ -738,19 +793,23 @@ class TBCapture(object):
                     print( "### No more chests to capture!")
                     return True
 
-                print("*** CAPTURED TEXT:")
+                print("\n\n***************** CAPTURED TEXT: ******************")
                 print(capture)
-                print("*** CAPTURED ROWS:")
+                print("***************** CAPTURED ROWS: ******************")
                 text = ""
                 for row in rows:
                     print(row)
                     text += row + "\n"
-                print("*** ERROR: The number of captured non-empty rows is not divisible by 3. ***")
-                print("* Processing of this capture segment will stop!")
-                print("* The captured rows will be copied to the clipboard so that they can be manually")
-                print("* pasted into the document in case there is a way to manually correct this.")
-                print("* Also note that the same correction should also be manually pasted into the")
-                print("* current archive file, otherwise that change will not be reflected there.")
+                print("\n***************** CAPTURE ERROR: ******************")
+                print("=> Error with captured rows. <=> Processing of this")
+                print("=> capture will stop! The captured text at the rows")
+                print("=> will be copied to the clipboard, check and add")
+                print("=> them manually at your 'data/captured-datas.txt'")
+                print("=> ")
+                print("=> Also note that the same correction should also")
+                print("=> be manually pasted into the current archive")
+                print("=> file, otherwise that change will not be")
+                print("=> reflected there.\n")
 
                 self.cfile.writelines("--------------- The above segment might not be present in the archive file due to processing errors\n")
                 self.cfile.flush()
@@ -773,11 +832,9 @@ class TBCapture(object):
 
             try:
                 chest = player = source = ""
-
                 chest = self.chest_def.validate(line)
                 validate_line_count += 1
                 line = rows.pop()
-
                 player = line.strip()
 
                 # The Great Hunt chests have no player attached
@@ -787,8 +844,8 @@ class TBCapture(object):
                 else:
                     success, player = self.player_def.validate(player, validate_line_count)
                     validate_line_count += 1
+                
                 line = rows.pop()
-
                 source = line.strip()
                 success, source = self.source_def.validate(source, validate_line_count)            
                 validate_line_count += 1
@@ -804,7 +861,10 @@ class TBCapture(object):
                         break
 
                 else:
-                    print("*** ERROR: Falied to parse chest ({}): {}, From: {}, Source: {}".format( validate_line_count, chest, player, source))
+                    print("*** OCR DETECTION ERROR: L{}".format(validate_line_count))
+                    print("*** Chest  : {}".format(chest))
+                    print("*** From   : {}".format(player))
+                    print("*** Source : {}".format(source))
                     success = False
                     break
             except:
@@ -813,45 +873,51 @@ class TBCapture(object):
                 break
 
         return success
+
 # ---------------------------------------------------------------------------------------------------------------
+# Save Chest, From and Source to the data-file
+# ---------------------------------------------------------------------------------------------------------------
+
     def save_records(self):
     
         index = 0
         rows = list()
 
         while index < len(self.records):
-
             chest = self.records[index][0]
             player = "From : " + self.records[index][1]
             source = "Source : " + self.records[index][2]
 
+            print("\n-------------------------------------------------------")
             print("{}".format(chest))
             print("{}".format(player))
             print("{}".format(source))
+            print("-------------------------------------------------------")
 
             rows.append(chest)
             rows.append(player)
             rows.append(source)
-
             index += 1
-
-        print("Saving records...")
 
         for row in rows:
             self.sfile.writelines(row+"\n")
+            self.tfile.writelines(row+"\n")
             self.wfile.writelines(row+"\n")
 
         self.sfile.flush()
+        self.tfile.flush()
         self.wfile.flush()
 
-        print("Done!")
-
+        print("Records saved...\n")
+        
 # ---------------------------------------------------------------------------------------------------------------
     def run(self):
 
         value = ""
         while True:
-            value = input("Enter the total number of chests you want to collect ('-' to exit): ")
+            
+            value = input("\nTotal Chests to collect? ('-' exit): ")
+            
             if value.isdigit() or value == "-":
                 break
 
@@ -861,46 +927,40 @@ class TBCapture(object):
         maxClicks = int(value)
 
         while True:
-
-            print("Taking a screenshot...")
+            print("\n\n>>>>> OCR processing {}/{}....".format(self.totalClicks+1, maxClicks))
             image = self.screen.get_screenshot(self.config.x1, self.config.y1, self.config.x2, self.config.y2)
-            print("Done!")
-
-            print("Some image processing...")
             image = self.screen.get_grayscale(numpy.array(image))
-            print("Done!")
-
-            print("Performing OCR analysis...")
             capture = self.screen.ocr_core(image)
-            print("Done!")
-
             count = 4 # chests on the screen
 
             # make sure we don't capture more than the specified number of chests
             if self.totalClicks + count > maxClicks:
                 count = maxClicks - self.totalClicks
 
-            print("Processing chests from the capture...")
             success = self.validate_capture(capture, count)
             
             if len(self.records) < count and len(self.records) > 0: # did we capture less than the specified number?
-                print( "### Only {} chests were captured".format(len(self.records)))
-
-            print("Done!")
-
+               nofunc = maxClicks +1
+ 
             if success and len(self.records) == 0: # success but nothing was captured so stop
-                print("{} chests collected out of the stipulated {}. Stopping.".format(self.totalClicks, maxClicks))
+                print("\n*** {} from {} Chests saved. Process cancelled.\n".format(self.totalClicks, maxClicks))
                 break
 
             proceed = ""
 
             if not success:
                 while True:
-                    print("*** \nERROR: The screen capture could not be validated ***")
-                    proceed = input("*** ERROR: What do you want to do (1=capture again, 2=save it anyway, 3=stop processing) ? ")
+                    print("*** ERROR: The language is English?")
+                    print("*** ERROR: Check captured text\n")
+                    print(">>> [1] Capture again [2] Save It anyway")
+                    print(">>> [3] Stop Process  [4] Show Captured text")
+                    
+                    proceed = input("\n*** [1] - [2] - [3] or [4] ? ")
             
                     if proceed == "4":
+                        print("\n\n************ CAPTURED TEXT ************")
                         print(capture)
+                        print("***************************************\n")
 
                     if proceed in ["1", "2", "3"]:
                         break
@@ -921,7 +981,6 @@ class TBCapture(object):
                 if self.totalClicks + clicks > maxClicks:
                     clicks = maxClicks - self.totalClicks
         
-                print("Opening {} chests...".format(clicks))
                 moveX = [0,3,-6,6,-3,0]
                 hwndThis = pygetwindow.getActiveWindow()
 
@@ -935,21 +994,22 @@ class TBCapture(object):
                 for i in range(clicks):
                     pyautogui.click(x=int(self.config.mx)+moveX[i], y=int(self.config.my)) # move the cursor slighty to avoid the game screensaver
                     self.totalClicks += 1
-                    time.sleep(int(self.clickWait) / 1000.0)
+                    time.sleep(int(self.clickWait) / 2000.0)
                 hwndThis.activate()
-                print("Done!")
-                time.sleep( 2 * int(self.clickWait) / 1000.0 )
+                time.sleep( 2 * int(self.clickWait) / 2000.0 )
 
             if self.totalClicks >= maxClicks:
-                print("{} chests collected which equals the stipulated number entered when the program started. Stopping.".format(self.totalClicks))
+                print("\n================================")
+                print("{} Chests total collected.".format(self.totalClicks))
+                print("================================\n\n\n")
                 break
 
         self.player_def.save()
 
         if not success:
-            print("\n************************************************************************")
-            print("***** THERE ARE ERRORS IN THE PROCESSING THAT NEED TO BE ADDRESSED *****")
-            print("************************************************************************")
+            print("\n****************************************")
+            print("** THERE ARE ERRORS IN THE PROCESSING **")
+            print("****************************************")
 
 # TBProcess ------------------------------------------------------------------------------------------------------
 class TBProcess(object):
@@ -961,12 +1021,14 @@ class TBProcess(object):
         self.debug_mode             = args.verbose
         self.config                 = config
         self.skip_empty             = False
-        self.eod                    = False
-        self.summary                = False
+        self.eod                    = True
+        self.summary                = True
         self.citadels               = False
         self.start_date             = ''
         self.end_date               = ''
         self.score_def              = TBScore(config.score_file)
+        global odc
+        odc = 0
 
         if args.skip_empty:
             self.skip_empty = args.skip_empty
@@ -980,9 +1042,14 @@ class TBProcess(object):
             self.citadels = args.citadels
         if args.start_date:
             self.start_date = args.start_date
+            odc = 1
+            #print("*** Start-Date! {}".format(odc))
+            
         if args.end_date:
             self.end_date = args.end_date
-
+            odc = 1
+            #print("*** End-Date! {}".format(odc))
+            
         self.player_summary = {}
         self.citadel_summary = {}
 
@@ -995,37 +1062,229 @@ class TBProcess(object):
                     self.player_summary[kvp[0]] = [0, 0]
                     self.citadel_summary[kvp[0]] = [0, 0, 0, 0, 0, 0, 0, 0]
 
-# ------------------------------------------------------------------------------------------------------
-    def cycle_duplicate_files( self, filepath, ext ):
 
-        if os.path.isfile( filepath + ext ): # file with the same name already exists, so rename to avoid overwriting
-            for i in range( 98, 0, -1 ): # rename older versions adding a number, allow up to 99 versions
-                src = filepath + "_" + str(i) + ".old"
-                dst = filepath + "_" + str(i+1) + ".old"
-                try:
-                    os.rename( src, dst )
-                except:
-                    continue
-            src = filepath + ext
-            dst = filepath + "_1.old"
-            os.rename( src, dst )
 # ------------------------------------------------------------------------------------------------------
     def process_file(self, inputfile, processing_date):
 
-        success = True
-    
+# ------------------------ Find Epic Chests, which is not in Source, but in Line 1 --------------------------------------------
+
+        datafile  = self.config.datafile
+        totalfile = self.config.totalfile
+
+        # Line1 is the epic chestname, but in line 3 is the same name than other normal chests, so find the
+        # epic chests in line 1 + normal chests in line 3, if line1+3 = True than rename the normal chest
+        # in line 3 to a epic chest, to calculate points.
+
+        word1 = "Jack Reaper Chest"         #line1
+        word2 = "Pumpkin"                   #line3
+        nword2 = "Epic Jack Reaper Chest"   #new line3
+
+        # Read datafile
+        if os.path.exists(datafile):
+            with open(datafile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the datafile back
+            with open(datafile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+        # same fix for total-datas!
+        if os.path.exists(totalfile):
+            with open(totalfile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the totalfile back
+            with open(totalfile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+        # Line1 is the epic chestname, but in line 3 is the same name than other normal chests, so find the
+        # epic chests in line 1 + normal chests in line 3, if line1+3 = True than rename the normal chest
+        # in line 3 to a epic chest, to calculate points.
+
+        word1 = "Arcane Chest"                  #line1
+        word2 = "Dark Omens event"              #line3
+        nword2 = "Epic Dark Omen Arcane Chest"  #new line3
+
+        # Read datafile
+        if os.path.exists(datafile):
+            with open(datafile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the datafile back
+            with open(datafile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+        # same fix for total-datas!
+        if os.path.exists(totalfile):
+            with open(totalfile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the totalfile back
+            with open(totalfile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+# ------------------------ Find and Replace Bad Wordphrases ------------------------------------------------
+
+        filepath = self.config.datafile
+        fixwords = self.config.fixwords
+        checkfile = Path(filepath)
+
+        with open(fixwords, 'r') as f:
+            head_a = f.readline()
+            count_all = 0
+            count = 0
+            
+            while True:
+            
+                word1 = f.readline()
+                word2 = f.readline()
+
+                # datafile missing or OneDayCapture is active than break
+                if not checkfile.is_file() or odc == 1:
+                    break
+
+                # Break, if the first Line is empty (End of Datas)
+                if not word1:
+                    print("\n")
+                    print(">>-----------    Find and Replace    --------------<<")
+                    print(">> Bad Wordphrases replaced : {} times \n\n".format(count_all))
+                    break
+            
+                # If badword and goodword in the database:
+                if word1 and word2:
+                    # Activate print to check bad-wordphrase + good wordphrase
+                    #print(f"Line 1 Bad : {word1.strip()}")
+                    #print(f"Line 2 Good: {word2.strip()}")
+                    
+                    # Load Captured Datas
+                    with open(filepath, 'r') as file:
+                        filedata = file.read()
+                        # Count wrong word-phrase
+                        count = filedata.count(word1)
+                        count_all = count_all+count
+                        # replace the old word-phrase with the new word-phrase
+                        filedata = filedata.replace(word1, word2)
+                        # write the modified data back to the file
+                        with open(filepath, 'w') as file:
+                            file.write(filedata)
+
+                # Break, if the second line is empty, but not the first
+                if not word2 and word1:
+                    print(">>-----------    Find and Replace    --------------<<")
+                    print(">> Line 2 is empty: Bad Database                   <<")
+                    print(">>-------------------------------------------------<<\n\n")
+                    break
+            
+                # Prüfen Sie die dritte gelesene Zeile auf Leerheit (die 3. Zeile ist die nächste Zeile nach dem Paar)
+                if not word2.strip():
+                    break
+
+            success = True
+                
+# ---------------------- Find and Replace Olympic & Ragna  -------------------------------------------
+        while True:    
+            filepath = self.config.datafile
+            checkfile = Path(filepath)
+
+            # Datafile is present and no OneDayCapture than run this code
+            if checkfile.is_file() and odc == 0:
+                # Olympus or Ragna y/n
+                print("\n----------------------------------------------------")
+                print(">>> Olympus and Ragnarok Chests:")
+                print(">>> PLAYERS SHOULD PICK UP THE CHESTS AT THE EVENT!")
+                print(">>> Olympic & Ragna Chests should count? [Y or Yes]")
+                print(">>> Olympic & Ragna Chest no counting? [N or No]\n")
+                print(">>> The chests get renamed to Bad Hermes and")
+                print(">>> Bad Jormungandr with 0 points with your score.\n")
+                print(">>> The changes are only updated to the current")
+                print(">>> capture-file into the data-folder!")
+                print("----------------------------------------------------\n")
+        
+                choice = input("### Event Olympus or Ragnarok now running? [y/n]: ")
+                if choice.lower() == "n" or choice.lower() == "no":
+
+                    # Find Source old and rename with new
+                    old_text1 = "Hermes' Store"
+                    new_text1 = "Bad Hermes"
+                    old_text2 = "Jormungandr Shop"
+                    new_text2 = "Bad Jormungandr"
+
+                    # open the file
+                    with open(filepath, 'r') as file:
+                        filedata = file.read()
+
+                    # count the old_text
+                    count_text1 = filedata.count(old_text1)
+                    count_text2 = filedata.count(old_text2)
+
+                    # replace the old text with the new text
+                    filedata = filedata.replace(old_text1, new_text1)
+                    filedata = filedata.replace(old_text2, new_text2)
+
+                    print("\n")
+                    print("================   Find and Replace    ================")
+                    print(">>> Original Chest  : {} ".format( old_text1))
+                    print(">>> Renamed Chest   : {} ".format( new_text1))
+                    print(">>> Found & Renamed : {} times ".format( count_text1))
+                    print("-------------------------------------------------------")
+                    print(">>> Original Chest  : {} ".format( old_text2))
+                    print(">>> Renamed Chest   : {} ".format( new_text2))
+                    print(">>> Found & Renamed : {} times ".format( count_text2))
+                    print("=======================================================\n")
+                    
+
+                    # write the modified data back to the file
+                    with open(filepath, 'w') as file:
+                        file.write(filedata)
+                        break
+                elif choice.lower() == "y" or choice.lower() == "Yes":
+                    print("\n>> Event Olympus or Ragnarok running!")
+                    print(">> All Olympus & Ragna Chests count now! \n")
+                    break
+                else:
+                    print("\n>> Wrong Input, Try again!")
+            else:
+                break
+
+        succes = True
+
+
+# ---------------------- Write Summarys -------------------------------------------
+        
         with open(inputfile) as fp:
 
             file_dir = self.config.final_dir
 
-            ofile = file_dir + '/TB_Chests'
-            ofile += '_' + self.config.clan
-            ofile += '_' + processing_date
+            ofile = file_dir + '/' + processing_date
+            ofile += '_TB_Chests'
+            ofile += '_' +self.config.clan
             ofile += '_' + "FINAL"
-
-            self.cycle_duplicate_files( ofile, ".csv" )
-
-            ofile += '.csv'
+            ofile += '_' +self.config.zip
+            ofile += '.txt'
 
             opf = open(ofile, 'w')
             opf.writelines('DATE,PLAYER,SOURCE,CHEST,SCORE,CLAN\n')
@@ -1077,7 +1336,7 @@ class TBProcess(object):
 
                         opf.writelines(processing_date+','+player+','+source+','+chest+','+score+','+self.config.clan+'\n')
                     else:
-                        print("*** ERROR: Falied to parse chest ({}/{}): {}, From: {}, Source: {}".format( parsed_line_count, source_line_count, chest, player, source))
+                        print("*** ERROR: Failed to parse chest ({}/{}): {}, From: {}, Source: {}".format( parsed_line_count, source_line_count, chest, player, source))
                         success = False
                         break
                 except:
@@ -1091,7 +1350,9 @@ class TBProcess(object):
             print("*** ERROR Mismatch between procseed line count and source line count: {} != {} / 3".format(parsed_line_count,source_line_count))
             success = False
 
-        print("\nProcessed {} records from {} source lines".format(parsed_line_count,source_line_count))
+        print("\n\n\n")
+        print("-------------   Process summary files   ---------------")
+        print(">> Processed : {} records".format(parsed_line_count))
 
         if success:
             # after a successful end of day run, create a copy of the input file and put it in the archive directory unless it was a batch run which will already be reading those files
@@ -1100,20 +1361,17 @@ class TBProcess(object):
                 archive_file = self.config.archive_dir + '/TB_Chests'
                 archive_file += '_' + self.config.clan
                 archive_file += "_" + processing_date + "_DATA"
-
-                self.cycle_duplicate_files( archive_file, ".archive" )
-
                 archive_file += ".archive"
 
                 # save input file to archive with datestamp added to file name
                 shutil.copyfile(self.config.datafile, archive_file)
 
-                print("\n### End of Day processing for {}".format(processing_date))
-                print("### Saved archived data file:  {}".format(archive_file))
-                print("### Saved processed data file: {}".format(ofile))
+                print(">> Saved processed data file:")
+                print(">> {}".format(ofile))
 
             else:
-                    print("### Saved processed data file: {}".format(ofile))
+                    print(">> Saved processed data file:")
+                    print(">> {}".format(ofile))
 
         return success
 # ------------------------------------------------------------------------------------------------------
@@ -1123,16 +1381,13 @@ class TBProcess(object):
         date_tag = ""
     
         if self.start_date == "" or self.end_date == "":
-            print("\n### Calculating CHEST summary data based on ALL files in the /final directory")
-
-            file_pattern = self.config.final_dir + "/TB_Chests"
-            file_pattern += "_" + self.config.clan
-            file_pattern += "_*_FINAL.csv"
-    
+            import datetime as dt
+            current_date = dt.date.today()
+            processing_date = current_date.strftime("%Y-%m-%d")
+            file_pattern = self.config.final_dir + "/" + processing_date
+            file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL_" + self.config.zip + ".txt"
             file_list = glob.glob(file_pattern)
         else:
-            print("\n### Calculating CHEST summary data based on files from {} to {} in the /final directory".format(self.start_date, self.end_date))
-
             date_start = datetime.strptime(self.start_date,"%Y-%m-%d")
             date_end   = datetime.strptime(self.end_date,"%Y-%m-%d")
             file_list  = list()
@@ -1144,11 +1399,9 @@ class TBProcess(object):
 
             while True:
                 processing_date = date_start.strftime("%Y-%m-%d")
+                file_pattern = self.config.final_dir + "/" + processing_date
+                file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL_" + self.config.zip + ".txt"
 
-                file_pattern = self.config.final_dir + "/TB_Chests"
-                file_pattern += "_" + self.config.clan
-                file_pattern += "_" + processing_date + "_FINAL.csv"
-    
                 file_list.append(file_pattern)
 
                 date_start += timedelta(days=1)
@@ -1159,14 +1412,11 @@ class TBProcess(object):
         for player in self.player_summary:
             self.player_summary[player] = [0, 0]
 
-        print("### Summary processing has started...\n")
         for file in file_list:
             with open(file) as sp:
 
-                print("Processing {}".format(file))
-
                 while True:
-
+                    a = 0
                     line = sp.readline()
                     if not line:
                         break            
@@ -1177,36 +1427,77 @@ class TBProcess(object):
                     player = columns[1]
                     score  = columns[4]
 
-                    if player == "PLAYER": # skip the header row
-                        continue
-
+                    # Check if the player is in the players-database
+                    playerlist = self.config.player_file
+                    with open (playerlist,'r',encoding='utf-8') as checkplayer:
+                        plist = checkplayer.read()
+                        if player in plist:
+                            a=1
+                        if player == "PLAYER":
+                            continue
+                        if a == 0:
+                            print("\n")
+                            print("=======================================")
+                            print(">>> Missing Player for summary ")
+                            print(">>> : {}".format(player))
+                            print(">>> His Points/Score will be added to  ")
+                            print(">>> the player 'unknown' - or add the  ")
+                            print(">>> playername to your players-list and")
+                            print(">>> start the summary process again!   ")
+                            print("=======================================")
+                            player = 'unknown'
+                    
                     self.player_summary[player][0] = self.player_summary[player][0] + int(score) # add the score
                     self.player_summary[player][1] = self.player_summary[player][1] + 1 # increase chest number count by 1
+                    a = 0
 
-        file = self.config.final_dir + "/TB_PlayerSummary"
-        file += "_" + self.config.clan
-        if date_tag != "":
-            file += "_" + date_tag
-        file += "_FINAL.csv"
+        file = self.config.final_dir + "/" + processing_date
+        file += "_TB_PlayerSummary_" + self.config.clan
+        file += "_FINAL_" + self.config.zip + ".txt"
+
         opf = open(file, 'w')
-        opf.writelines("PLAYER,SCORE,COUNT\n")
-    
-        file2 = self.config.final_dir + "/TB_PlayerSummary_NoScore"
-        file2 += "_" + self.config.clan
-        if date_tag != "":
-            file2 += "_" + date_tag
-        file2 += "_FINAL.csv"
-        opf2 = open(file2, 'w')
+        opf.writelines("PLAYER,SCORE,CHEST\n")
     
         # sort by highest score
         player_summary_sorted = dict(sorted(self.player_summary.items(), key=lambda item: item[1], reverse=True))
 
         for player in player_summary_sorted:
             opf.writelines("{},{},{}\n".format( player, player_summary_sorted[player][0], player_summary_sorted[player][1]))
-            opf2.writelines("{}\n".format(player))
+#            opf2.writelines("{}\n".format(player))
 
-        print("\n### Player summary processing has been completed")
-        print("### Destination file: {}".format(file))
+        print(">> Saved Player summary file:")
+        print(">> {}".format(file))
+        print("-------------------------------------------------------")
+        
+# ----------------- End of day Summary & process the capture file -------------------------------------------
+
+        while True:
+            
+            fullfile                = self.config.datafile
+            checkfile               = Path(fullfile)
+            splitfile               = re.split(r'[/.]+',fullfile)
+            var1, var2, var3, var4  = splitfile
+            var5                    = self.config.clan
+            clip                    = self.config.zip
+            savefile                = f"../{var2}/{processing_date}_{var3}_{var5}_FINAL_{clip}.txt"
+            
+            # Datafile is present and no OneDayCapture than copy the capture-file with process-date:
+            if checkfile.is_file() and odc == 0:
+                
+                print("-------- End of Day - Copy of Capture Summary ---------")
+                print(">> Delete this File, to start a new capture-file:  ")
+                print(">> {}".format(fullfile))
+                print(">> Your new 'End-of-day' Capture File:             ")
+                print(">> {}".format(savefile))
+                print("-------------------------------------------------------")
+                shutil.copy (fullfile, savefile)
+                print("\n\n")
+                break
+                
+            else:
+                break
+
+        succes = True
 
 # ------------------------------------------------------------------------------------------------------
     def run_citadel_summary(self):
@@ -1221,7 +1512,7 @@ class TBProcess(object):
 
             file_pattern = self.config.final_dir + "/TB_Chests"
             file_pattern += "_" + self.config.clan
-            file_pattern += "_*_FINAL.csv"
+            file_pattern += "_*_FINAL_" + self.config.zip + ".txt"
     
             file_list = glob.glob(file_pattern)
         else:
@@ -1241,7 +1532,7 @@ class TBProcess(object):
 
                 file_pattern = self.config.final_dir + "/TB_Chests"
                 file_pattern += "_" + self.config.clan
-                file_pattern += "_" + processing_date + "_FINAL.csv"
+                file_pattern += "_" + processing_date + "_FINAL_" + self.config.zip + ".txt"
     
                 file_list.append(file_pattern)
 
@@ -1253,7 +1544,6 @@ class TBProcess(object):
         for player in self.citadel_summary:
             self.citadel_summary[player] = [0, 0, 0, 0, 0, 0, 0, 0]
 
-        print("### Summary processing has started...\n")
         for file in file_list:
             with open(file) as sp:
 
@@ -1292,8 +1582,9 @@ class TBProcess(object):
         file += "_" + self.config.clan
         if date_tag != "":
             file += "_" + date_tag
-        file += "_FINAL"
-        file += ".csv"
+        file += "_FINAL_"
+        file += self.zip
+        file += ".txt"
 
         opf = open(file, 'w')
         opf.writelines("PLAYER,ELVEN_10,ELVEN_15,ELVEN_20,ELVEN_25,ELVEN_30,CURSED_20,CURSED_25,TOTAL\n")
@@ -1314,36 +1605,37 @@ class TBProcess(object):
                                                                    citadel_summary_sorted[player][7]))
 
         print("\n### Citadel summary processing has been completed")
-        print("### Destination file: {}".format(file))
+        print("### Destination file: {}\n".format(file))
+        
 
 # ------------------------------------------------------------------------------------------------------
     def run(self):
-
+        
         if self.eod:
-
-             # standard eod
+            
+            # standard eod
             if self.start_date == "" or self.end_date == "":
                 success = self.process_file(self.config.datafile, self.processing_date)
-
+                
             # re-run EoD for the date range using data files from the /archive directory
             elif self.start_date != "" and self.end_date != "": 
     
                 # Batch processing will ignore the input filename and read only form the archive direcotry
-                print("*** Info: Processing EOD in batch. Please note that input will always be read from the archive files during batch processing.")
+                print("\n")
 
                 date_start = datetime.strptime(self.start_date,"%Y-%m-%d")
                 date_end   = datetime.strptime(self.end_date,"%Y-%m-%d")
 
                 while True:
-
+                    
                     processing_date = date_start.strftime("%Y-%m-%d")
 
                     archive_file = self.config.archive_dir + '/TB_Chests'
-                    archive_file += '_' + self.config.clan
+                    archive_file += "_" + self.config.clan
                     archive_file += "_" + processing_date + "_DATA.archive"
 
                     success = self.process_file(archive_file, processing_date)
-
+                                        
                     if not success:
                         print("*** ERROR: Batch processing of file {} was unsuccessful! Batch processing will terminate.".format(archive_file))
                         break
@@ -1359,16 +1651,14 @@ class TBProcess(object):
                 print("***** THERE ARE ERRORS IN THE PROCESSING THAT NEED TO BE ADDRESSED *****")
                 print("************************************************************************")
 
-
         if self.summary:
             self.run_chest_summary()
-
+            
         if self.citadels:
             self.run_citadel_summary()
 
-# TBProcess ------------------------------------------------------------------------------------------------------
 
-# TBChestCounter ------------------------------------------------------------------------------------------------------
+# TBChestCounter ----------------------------------------------------------------
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--config", help="a separate configuration file that contains relevant processing paramters. these can be overridden by providing arguments", required="True")
@@ -1378,8 +1668,8 @@ parser.add_argument("--calibrate", action="store_true", help="enters calibration
 parser.add_argument("--capture", action="store_true", help="runs the chest capture software")
 parser.add_argument("--process", action="store_true", help="process captured chest information")
 
-# only used by TBCapture 
-parser.add_argument("--clickWait", help="time to wait between auto-clicks", default="300")
+# only used by TBCapture
+parser.add_argument("--clickWait", help="time to wait between auto-clicks", default="250")
 
 # only used by TBProcess
 parser.add_argument("--date", help="optional processing date, default is current date")
@@ -1392,7 +1682,6 @@ parser.add_argument("--skip_empty", action="store_true", help="skip players with
 
 
 args = parser.parse_args()
-
 config = TBConfig(args.config, args.clickWait)
 
 if args.calibrate:
@@ -1405,4 +1694,34 @@ elif args.process:
     app3 = TBProcess(config, args)
     app3.run()
 
-# TBChestCounter ------------------------------------------------------------------------------------------------------
+# ------------------- START PS GUI -------------------------------------------
+
+while True: 
+    print("\n")
+    print(">>> Back to PowerShell GUI?")
+    print(">>> 1 : Clan {}".format(clan1))
+    print(">>> 2 : Clan {}".format(clan2))
+    print(">>> 3 : Clan {}".format(clan3))
+    print(">>> 4 : Clan {}".format(clan4))
+    print(">>> all other keys for Exit \n")
+    import subprocess
+    choice = input("[1] - [2] - [3] - [4] or [eXit] ? ")
+    if choice.lower() == "1":
+            command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath1}\""
+            result = subprocess.run(command)
+            break
+    elif choice.lower() == "2":
+            command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath2}\""
+            result = subprocess.run(command)
+            break
+    elif choice.lower() == "3":
+            command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath3}\""
+            result = subprocess.run(command)
+            break
+    elif choice.lower() == "4":
+            command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath4}\""
+            result = subprocess.run(command)
+            break
+    else:
+            print("\nEXIT\n")
+            break
