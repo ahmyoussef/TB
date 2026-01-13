@@ -4,13 +4,13 @@
 
 # Type your clan as example $clanname1 = 'Lords of Dragons'
 # see your configuration file config/config.cfg for $clanname!
-    $clanname1 = 'Lords of Dragons'
+    $clanname1 = 'HALO'
     $clanname2 = 'Your 2nd clan'
     $clanname3 = 'Your 3rd clan'
     $clanname4 = 'Your 4th clan'
 
 # -- Correct install-path, if needed --
-    $main = "c:\chest-counter\"
+    $main = "c:\TB\"
 # -------------------------------------
         
         # do not touch!

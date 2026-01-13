@@ -1,0 +1,24 @@
+--------------- 2026-01-03 21:15:40 --------------------------
+Bone Chest
+From: Gimin
+Source: Level 10 Crypt
+--------------- 2026-01-03 21:15:41 --------------------------
+ay
+3)
+sat
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-03 21:16:13 --------------------------
+Bone Chest
+From: Gimin
+Source: Level 10 Crypt
+--------------- 2026-01-03 21:16:14 --------------------------
+Ae
+--------------- The above segment might not be present in the archive file due to processing errors
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-03 21:16:53 --------------------------
+Bone Chest
+From: Gimin
+Source: Level 10 Crypt
+--------------- 2026-01-03 21:16:54 --------------------------
+Ae
+--------------- The above segment might not be present in the archive file due to processing errors
