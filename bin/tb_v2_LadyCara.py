@@ -1,6 +1,3 @@
-# tb.py
-# 1. IMPORTS Y CONFIGURACIÓN GLOBAL ----------------------------------------------------------------------
-
 from logging import captureWarnings
 from pickle import NEWFALSE
 from posixpath import splitext
@@ -21,30 +18,21 @@ import cv2
 import numpy
 import pytesseract
 
-
-from PIL import ImageGrab
-import pyautogui, sys
-import pygetwindow
-
-
-# ---------------- CONFIGURACIÓN ABSOLUTE PATH DE TESSERACT -------------------------------------------------------
+# ---------------- CHECK ABSOLUTE PATH -------------------------------------------------------
 
 # absolute path to tesseract.exe
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ---------------- CHECK ABSOLUTE PATH END ---------------------------------------------------
-# Archivos de log
-LOG_CORRECTIONS = Path('working/ocr_corrections.log')
-LOG_MISSING_TIME = Path('working/missing_timeleft.log')
 
-# 2. CLASE TBConfig (CONFIGURACIÓN ESCALABLE) ------------------------------------------------------------
+from PIL import ImageGrab
+import pyautogui, sys
+import pygetwindow
 
+# TBConfig ------------------------------------------------------------------------------------------------------
 class TBConfig(object):
-    """
-    Clase para parsear y gestionar parámetros de archivo de configuración: config/config.cfg.
-    Mejorada para manejar clanes de forma escalable y asegurar tipos de datos.
-    """
-    # ------------------------------------------------------------------------------------------------------
+    """ This class parses configuration parameters from the configuration file """
+# ------------------------------------------------------------------------------------------------------
     def __init__(self, config_file, clickWait):
         config_kvp = {}
 
@@ -61,11 +49,8 @@ class TBConfig(object):
                     config_kvp[kvp[0].strip()] = kvp[1].strip()
         except:
             print("### FATAL ERROR: Unable to open or read the configuration file: {}").format(config_file)
-            #print("### ERROR FATAL: No se puede abrir o leer el archivo de configuración: {}".format(config_file))
-            
             exit()
         else:
-            # Asignación segura de propiedades con conversión de tipo
             self.datafile        = config_kvp.get('data','')
             self.totalfile       = config_kvp.get('total','')
             self.working_dir     = config_kvp.get("working", '')
@@ -73,6 +58,7 @@ class TBConfig(object):
             self.final_dir       = config_kvp.get("final", '')
             self.player_file     = config_kvp.get('players', '')
             self.clan            = config_kvp.get('clan', '')
+            self.zip             = config_kvp.get('zip', '')
             self.quality_file    = config_kvp.get('quality', '')
             self.score_file      = config_kvp.get('score', '')
             self.fix_ocr_file    = config_kvp.get('fix_ocr', '')
@@ -82,14 +68,6 @@ class TBConfig(object):
             self.y2              = config_kvp.get('y2', '')
             self.mx              = config_kvp.get('mx', '')
             self.my              = config_kvp.get('my', '')
-            
-            # --- NUEVA MODIFICACIÓN: COORDENADAS PARA LA CAPTURA DE TIEMPO --- YOZAHM
-            # NUEVAS coordenadas para Time Left
-            self.time_x1         = config_kvp.get('time_x1', '')  # Default a las coordenadas principales
-            self.time_y1         = config_kvp.get('time_y1', '')
-            self.time_x2         = config_kvp.get('time_x2', '')
-            self.time_y2         = config_kvp.get('time_y2', '')
-            # --------------------------------------------------------------------
             self.clickWait       = config_kvp.get('clickWait', clickWait)
             self.fixwords        = config_kvp.get('fixwords', '')
             self.clangui         = config_kvp.get('clanname1', '')
@@ -101,8 +79,8 @@ class TBConfig(object):
             self.pshellpath3     = config_kvp.get('pspath3', '')
             self.pshellpath4     = config_kvp.get('pspath4', '')
             
-            # Estructura escalable para clanes (Busca hasta 4 clanes)
-            global clan1, clan2, clan3, clan4, pshellpath1, pshellpath2, pshellpath3, pshellpath4
+            global clan1, clan2, clan3, clan4, clip, pshellpath1, pshellpath2, pshellpath3, pshellpath4
+            clip  = self.zip
             clan1 = self.clangui
             clan2 = self.clangui2
             clan3 = self.clangui3
@@ -112,14 +90,12 @@ class TBConfig(object):
             pshellpath3 = self.pshellpath3
             pshellpath4 = self.pshellpath4
                         
-#  3. BScreen: CLASES DE PANTALLA Y UTILIDADES OCR -----------------------------------------------------------------------------
+# TBScreen ------------------------------------------------------------------------------------------------------
 class TBScreen(object):
-    
     """ This class takes the screen capture and runs the OCR processing, and contains image processing functions """
-    """Manejo de captura de pantalla, preprocesamiento y OCR."""
 # ------------------------------------------------------------------------------------------------------
 #   def init__(self):
-
+ 
 # ------------------------------------------------------------------------------------------------------
     def get_screenshot(self, x, y, dx, dy):
         image = ImageGrab.grab(bbox=(int(x), int(y), int(dx), int(dy)))
@@ -137,51 +113,9 @@ class TBScreen(object):
     def ocr_core(self,img):
         text = pytesseract.image_to_string(img, lang='eng', config='--psm 12 --oem 1')
         return text
-    
-    def ocr_time_specialized(self, img):
-        """OCR SUPER especializado solo para tiempo con preprocesamiento agresivo
-        
-        Args:
-            img: PIL.Image o numpy array
-        
-        Returns:
-            str: Texto OCR extraído
-        """
-        # CRÍTICO: Convertir PIL Image a numpy array si es necesario
-        if hasattr(img, 'mode'):  # Es PIL Image
-            img = numpy.array(img)
-        
-        # Ahora img es definitivamente un numpy array
-        
-        # Convertir a grayscale si es necesario
-        if len(img.shape) == 3:
-            img = self.get_grayscale(img)
-        
-        # Aumentar tamaño 3x para mejor OCR
-        scale = 300
-        width = int(img.shape[1] * scale / 100)
-        height = int(img.shape[0] * scale / 100)
-        img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
-        
-        # Threshold para mejor contraste
-        img = self.thresholding(img)
-        
-        # Guardar para debug
-        try:
-            cv2.imwrite('../config/DEBUG_time_ocr.png', img)
-        except:
-            pass
-        
-        # Configuración MUY restrictiva para tiempo
-        # Solo permitir: 0-9, h, m, s, espacio, :
-        config = '--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789hms: '
-        
-        text = pytesseract.image_to_string(img, lang='eng', config=config)
-        return text.strip()
 
-# 4. TBFixOCR CLASE DE MODELADO DE DATOS Y LIMPIEZA OCR (Placeholders) ------------------------------------------------
-# Estas clases se mantienen para modularidad, asumiendo que implementan la lógica de validación
-# y carga de archivos CSV de forma robusta.
+
+# TBFixOCR ------------------------------------------------------------------------------------------------------
 class TBFixOCR(object):
     """ This class will attempt to fix known 2-line OCR capture issues. 
         The format in the config file should be:
@@ -539,273 +473,6 @@ class TBSource(object):
         return True, source
 
 
-# NEW MODIFICATION YOZAHM
-# 2.5 CLASE TBTimeLeft (PARSEO Y CORRECCIÓN DE TIEMPO RESTANTE) ------------------------------------------
-# --------------------------------------------------------------------------------------------------------
-class TBTimeLeft:
-    """
-    Robust extractor + validator for "Time left" OCR strings.
-    extract(line) -> (ok, hours, minutes, seconds, raw_text)
-    validate(hours, minutes, seconds, line_number, batch_mode=False)
-        -> (ok, corrected_hours, corrected_minutes, corrected_seconds, user_corrected_flag)
-    """
-
-    TIME_PATTERNS = [
-        # 1. Full H M S pattern (e.g., 6h:55m:30s, 6h 55m 30s)
-        re.compile(r'(?P<h>\d{1,3})\s*[hH]\s*[:\s]?\s*(?P<m>\d{1,2})\s*[mM]\s*[:\s]?\s*(?P<s>\d{1,2})\s*[sS]?', re.IGNORECASE),
-
-        # 2. H + M (e.g., 6h:55m, 6h55m, 6h 55m)
-        re.compile(r'(?P<h>\d{1,3})\s*[hH]\s*[:\s]?\s*(?P<m>\d{1,2})\s*[mM]?', re.IGNORECASE),
-
-        # 3. M + S (e.g., 55m:30s, 55m30s)
-        re.compile(r'(?P<m>\d{1,3})\s*[mM]\s*[:\s]?\s*(?P<s>\d{1,2})\s*[sS]?', re.IGNORECASE),
-
-        # 4. Fallback genérico: 2-3 números separados
-        re.compile(r'(?P<n1>\d{1,3})\D+(?P<n2>\d{1,2})(?:\D+(?P<n3>\d{1,2}))?'),
-
-        # 5. Single number → asume minutos
-        re.compile(r'^(?P<only>\d{1,3})$')
-    ]
-
-    def __init__(self, log_dir="working", batch_mode=False):
-        self.max_hours = 19
-        self.max_minutes = 59
-        self.max_seconds = 59
-        self.log_dir = log_dir
-        self.batch_mode = batch_mode
-        os.makedirs(self.log_dir, exist_ok=True)
-
-        self.corrections_log = os.path.join(log_dir, "ocr_corrections.log")
-        self.missing_log     = os.path.join(log_dir, "missing_timeleft.log")
-
-    # -------------------------------------------------------
-    def _log_correction(self, original, corrected, reason):
-        try:
-            with open(self.corrections_log, "a", encoding="utf-8") as f:
-                f.write(
-                    f"{datetime.utcnow().isoformat()} | ORIGINAL={original!r} | "
-                    f"CORRECTED={corrected!r} | REASON={reason}\n"
-                )
-        except:
-            pass
-
-    def _log_missing(self, context):
-        try:
-            with open(self.missing_log, "a", encoding="utf-8") as f:
-                f.write(f"{datetime.utcnow().isoformat()} | MISSING={context}\n")
-        except:
-            pass
-
-    # -------------------------------------------------------
-    def extract(self, line):
-        """
-        Extract hours/minutes/seconds from extremely messy OCR strings.
-        ALWAYS RETURNS 5 VALUES → (ok, hours, minutes, seconds, raw_text)
-        
-        FIXED: Preserva dígitos adyacentes para evitar pérdida de información
-        """
-
-        raw_original = (line or "").strip()
-        if not raw_original:
-            print("*** WARNING: Time-left empty OCR line")
-            self._log_missing("empty_time_line")
-            return False, 0, 0, 0, "0 h : 0 m : 0 s"
-
-        #print(f"### [DEBUG] Raw time OCR input: '{raw_original}'")
-        
-        # 1. Limpieza inicial: Remove prefix "Time left:"
-        s = re.sub(r'(?i).*time\s*left[:\s]*', '', raw_original).strip()
-        
-        # 2. Normalizar caracteres Unicode raros
-        s = s.replace('\u2212', '-').replace('\u2013', '-').replace('\u00A0', ' ')
-        s = re.sub(r'[^\x00-\x7F]', ' ', s)
-        
-        # 3. CRÍTICO: NO eliminar caracteres entre dígitos todavía
-        # Primero normalizar espacios alrededor de h/m/s
-        s = re.sub(r'(\d+)\s*([hHmMsS])', r'\1\2 ', s)  # "7h24m" -> "7h 24m "
-        
-        # 4. Eliminar caracteres problemáticos EXCEPTO dígitos, h/m/s, espacios, dos puntos
-        s = re.sub(r'[^0-9hHmMsS:\s]', ' ', s)
-        
-        # 5. Limpiar espacios múltiples
-        s = re.sub(r'\s+', ' ', s).strip()
-
-        #print(f"### [DEBUG] Cleaned time OCR: '{s}'")
-
-        hours = minutes = seconds = 0
-        matched = False
-
-        # 6. Aplicar patrones de extracción en orden de especificidad
-        for idx, pat in enumerate(self.TIME_PATTERNS):
-            m = pat.search(s)
-            if not m:
-                continue
-
-            matched = True
-            groups = m.groupdict()
-            #print(f"### [DEBUG] Pattern {idx+1} matched: {groups}")
-
-            # Extracción de H, M, S basados en grupos nombrados
-            if groups.get("h"):
-                try: 
-                    hours = int(re.sub(r'\D', '', groups['h']))
-                except: 
-                    hours = 0
-
-            if groups.get("m"):
-                try: 
-                    minutes = int(re.sub(r'\D', '', groups['m']))
-                except: 
-                    minutes = 0
-
-            if groups.get("s"):
-                try: 
-                    seconds = int(re.sub(r'\D', '', groups['s']))
-                except: 
-                    seconds = 0
-
-            # Extracción de valores genéricos (n1, n2, n3)
-            if groups.get("n1") and not groups.get("h"):
-                vals = [v for v in (groups['n1'], groups['n2'], groups.get('n3')) if v]
-                try:
-                    if len(vals) == 3:
-                        hours = int(vals[0])
-                        minutes = int(vals[1])
-                        seconds = int(vals[2])
-                    elif len(vals) == 2:
-                        hours = int(vals[0])
-                        minutes = int(vals[1])
-                    elif len(vals) == 1:
-                        minutes = int(vals[0])
-                except:
-                    pass
-
-            # Solo un número → asume minutos
-            if groups.get("only"):
-                try: 
-                    minutes = int(groups["only"])
-                except: 
-                    minutes = 0
-
-            raw_text = f"{hours} h : {minutes} m : {seconds} s"
-            #print(f"### [OK] extract() parsed: {raw_text}")
-            return True, hours, minutes, seconds, raw_text
-
-        # 7. Fallback final: extraer todos los dígitos y asumir orden H M S o H M
-        if not matched:
-            digits = re.findall(r'\d+', s)
-            print(f"### [DEBUG] Fallback digits found: {digits}")
-            
-            if len(digits) >= 2:
-                hours   = int(digits[0])
-                minutes = int(digits[1])
-                seconds = int(digits[2]) if len(digits) >= 3 else 0
-                print(f"### [FALLBACK] {hours} h : {minutes} m : {seconds} s")
-                return True, hours, minutes, seconds, f"{hours} h : {minutes} m : {seconds} s"
-
-            elif len(digits) == 1:
-                minutes = int(digits[0])
-                print(f"### [FALLBACK] 0 h : {minutes} m")
-                return True, 0, minutes, 0, f"0 h : {minutes} m : 0 s"
-
-        print("*** ERROR: Could not extract ANY time value")
-        self._log_missing(raw_original)
-        return False, 0, 0, 0, "0 h : 0 m : 0 s"
-
-    # -------------------------------------------------------
-    def validate(self, hours, minutes, seconds, line_number=0, batch_mode=None):
-        """
-        Validate & normalize time-left.
-        ALWAYS RETURNS 5 VALUES: (ok, hours, minutes, seconds, user_corrected)
-        """
-
-        if batch_mode is None:
-            batch_mode = self.batch_mode
-
-        user_corrected = False
-
-        # Convertir a enteros de forma segura
-        try: h = int(hours)
-        except: h = 0
-        try: m = int(minutes)
-        except: m = 0
-        try: s = int(seconds)
-        except: s = 0
-
-        #print(f"### VALIDATING: raw = {h} h : {m} m : {s} s (line {line_number})")
-
-        # Redondear segundos
-        if s >= 30:
-            print(f"*** INFO: seconds {s} >=30 → add 1 minute")
-            m += 1
-            s = 0
-
-        # Normalizar overflow de minutos
-        if m >= 60:
-            print(f"*** INFO: normalizing minutes: {m} -> add hours")
-            h += m // 60
-            m = m % 60
-
-        # Heurística OCR: 80-89 → restar 80
-        if 80 <= h <= 89:
-            orig = h
-            h = h - 80
-            print(f"*** INFO: hours {orig} -> {h} (OCR misread fix 80-89)")
-            self._log_correction(f"{orig} h", f"{h} h", "80-89 heuristic")
-
-        # Clamp a valores válidos
-        if h < 0: h = 0
-        if m < 0: m = 0
-        if s < 0: s = 0
-
-        # Validar rango de horas sospechoso (>= 20)
-        if h >= 20:
-            print(f"\n*** WARNING: Suspicious time detected at line {line_number}")
-            print(f"*** CAPTURED: {h} h : {m} m")
-            print("*** Valid range: 0–19 hours")
-            print("*** If correct press [Y], or [N] to reject,")
-            print("*** or enter manual correction e.g. '7 24' for 7h24m\n")
-
-            if batch_mode:
-                print("*** Batch-mode active → rejecting automatically")
-                return False, 0, 0, 0, False
-
-            while True:
-                user = input("Confirm [Y/N] or manual (H M): ").strip()
-                if user.upper() == "Y":
-                    return True, h, m, s, False
-                if user.upper() == "N":
-                    return False, 0, 0, 0, False
-
-                # Intentar parsear entrada manual
-                mm = re.findall(r'\d+', user)
-                if len(mm) >= 1:
-                    try:
-                        nh = int(mm[0])
-                        nm = int(mm[1]) if len(mm) > 1 else 0
-                        if 0 <= nh <= self.max_hours and 0 <= nm <= self.max_minutes:
-                            print(f"*** Manual correction accepted: {nh} h : {nm} m")
-                            return True, nh, nm, 0, True
-                        else:
-                            print(f"*** Manual values out of valid range 0–{self.max_hours}h / 0–{self.max_minutes}m")
-                            continue
-                    except:
-                        print("*** Invalid manual input")
-                        continue
-                else:
-                    print("*** Invalid format. Please enter: H M (e.g., 7 24)")
-                    continue
-
-        # Validación final de rangos normales (0-19 hours)
-        if 0 <= h <= self.max_hours and 0 <= m <= self.max_minutes:
-            #print(f"### VALIDATED OK: {h} h : {m} m : {s} s")
-            return True, h, m, s, user_corrected
-
-        # Si llega aquí, está fuera de rango
-        print(f"*** ERROR: Time-left out of valid range: {h}h {m}m")
-        self._log_correction(f"{h} h : {m} m", "0 h : 0 m", "out_of_range")
-        return False, 0, 0, 0, False
-
 # TBScore ------------------------------------------------------------------------------------------------------
 class TBScore(object):
     """ This class contains and calculates chest scores """
@@ -1026,8 +693,7 @@ class TBCapture(object):
         self.source_def             = TBSource()
         self.screen                 = TBScreen()
         self.fix_ocr_def            = TBFixOCR(config.fix_ocr_file)
-        self.time_left_def          = TBTimeLeft()
-        
+
         workfile = config.working_dir + '/TB_Capture_Clean'
         if len(config.clan) > 0:
             workfile += '_' + config.clan
@@ -1039,7 +705,7 @@ class TBCapture(object):
             capturefile += '_' + config.clan
         capturefile += '_' + self.processing_datetime
         capturefile += '.txt'
-        
+
         self.wfile = open(workfile, 'w')
         self.sfile = open(config.datafile,'a')
         self.tfile = open(config.totalfile,'a')
@@ -1049,247 +715,187 @@ class TBCapture(object):
         self.maxClicks   = 0
         self.totalClicks = 0
 
-    # ============================================================================
-    # FIXED: validate_capture() and save_records() methods for TBCapture class
-    # Issue 1: Now supports seconds in time validation
-    # Issue 2: Fixed "No more chests to capture!" appearing prematurely
-    # ============================================================================
+# ---------------------------------------------------------------------------------------------------------------
     def validate_capture(self, capture, count):
-        """
-        Validate merged capture (main + time region)
-        Fully compatible with new TBTimeLeft (hours + minutes + seconds)
-        """
-
-        import re
 
         success = True
-        self.records = []
+        player_set_changed = False
 
-        # Log raw capture
-        self.cfile.write(
-            "--------------- {} --------------------------\n".format(
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            )
-        )
-        self.cfile.write(capture + "\n")
+        self.records = list()
+        rows = list()
+
+        raw_rows = capture.split("\n")
+
+        self.cfile.writelines("--------------- {} --------------------------\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+        # ignore rows containing nothing but one of these chars/strings - OCR issues
+        ignore_rows = {"=", "-", "a", "_", ".", "__", "—"}
+
+        # remove empty rows
+        for row in raw_rows:
+            if len(row.strip()) == 0:
+                continue
+            elif row in ignore_rows:
+                continue
+
+            rows.append(row)
+            self.cfile.writelines(row+"\n")
+
         self.cfile.flush()
 
-        print("\n***************** CAPTURED TEXT (merged chest+time): ******************")
-        print(capture)
-        print("*********************************************************************\n")
+        if len(rows) % 3 > 0:
 
-        # Normalize input
-        # Esto convierte la captura de doble zona (separada por \n) en una lista de líneas.
-        lines = [x.strip() for x in capture.split("\n") if x.strip()]
-        if not lines:
-            print("### No chests found (OCR empty).")
-            return False
-
-        chest = None
-        player = None
-        source = None
-        time_left = None
-
-        records_found = 0
-        total = len(lines)
-        i = 0
-
-        # Cambiamos la lógica del while para asegurar que todos los campos se procesen
-        # antes de reiniciar (Finalize chest).
-        while i < total and records_found < count:
-
-            text = lines[i]
-
-            # 1) Chest name
-            # Debe ser la primera línea que no contenga ninguna palabra clave conocida.
-            if (
-                chest is None and
-                "From" not in text and
-                "Source" not in text and
-                "Time" not in text
-            ):
-                chest = text
-                # No usamos 'continue'. Simplemente pasamos a la siguiente línea.
-                # print(f"[DEBUG] Found Chest: {chest}")
-
-            # 2) From
-            elif "From" in text and player is None:
-                m = re.search(r"From\s*:?\s*(.+)", text)
-                if m:
-                    player = m.group(1).strip()
-                # print(f"[DEBUG] Found Player: {player}")
-
-            # 3) Source
-            elif "Source" in text and source is None:
-                m = re.search(r"Source\s*:?\s*(.+)", text)
-                if m:
-                    source = m.group(1).strip()
-                # print(f"[DEBUG] Found Source: {source}")
-
-            # 4) Time (El más complejo, lo dejamos al final de la detección)
-            # Se asume que Time left está en la última línea capturada.
-            elif time_left is None:
-                # Detecta tiempo incluso si NO contiene "Time left:"
-                lower = text.lower().strip()
-                raw_candidate = None
-
-                # PATRONES que seguro NO son tiempo
-                not_time_keywords = ("source", "from", "chest")
-                
-                # CASO A → Línea contiene "Time left"
-                if "time left" in lower:
-                    m = re.search(r"time\s*left\s*:?\s*(.+)", text, re.IGNORECASE)
-                    raw_candidate = m.group(1).strip() if m else text
-
-                # CASO B → No contiene "Time left", pero la línea PARECE un tiempo válido
-                elif not any(k in lower for k in not_time_keywords):
-                    # debe contener al menos un dígito
-                    if re.search(r"\d", lower):
-                        # patrón típico h,m,s en cualquier forma
-                        if re.search(r"[hmHsS]", lower) or re.search(r"\d+\s*[:]\s*\d+", lower):
-                            raw_candidate = text.strip()
-
-                # Si se detectó un candidato de tiempo, lo procesamos
-                if raw_candidate is not None:
-                    #print(f"\n### RAW TIME STRING DETECTED: '{raw_candidate}'")
-                    #print(f"### [DEBUG] Raw time OCR before cleaning: '{raw_candidate}'")
-
-                    ok_ex, h, mnt, sec, raw_time = self.time_left_def.extract(raw_candidate)
-
-                    #print(f"### [DEBUG] Cleaned time OCR: '{raw_time}'")
-
-                    if not ok_ex:
-                        print(f"### [FALLBACK] 0 h : 0 m")
-                        time_left = "0 h : 0 m"
-                    else:
-                        # VALIDACIÓN
-                        #print(f"### VALIDATING: raw = {h} h : {mnt} m : {sec} s (line {i})")
-                        #ok_v, hcorr, mcorr, usercorr = self.time_left_def.validate(h, mnt, sec, i)
-                        ok_v, hcorr, mcorr, scorr, usercorr = self.time_left_def.validate(h, mnt, sec, i)
-
-                        if ok_v:
-                            #print(f"### VALIDATED OK: {hcorr} h : {mcorr} m")
-                            # El tiempo se almacena en el formato final
-                            time_left = f"{hcorr} h : {mcorr} m"
-                        else:
-                            print(f"### VALIDATION FAILED → using 0 h : 0 m")
-                            time_left = "0 h : 0 m"
-
-                    #print(f"### NORMALIZED TIME → '{time_left}'")
-                # else: no era tiempo, avanzamos 'i'
-
-            # ============================================================
-            # Finalize chest: CHECKPOINT CRÍTICO
-            # Solo finaliza el registro si tiene todos los 4 campos y reinicia
-            # ============================================================
-            if chest and player and source and time_left:
-
-                try:
-                    pres = self.player_def.validate(player, i)
-                    final_player = player if pres is None else pres[1]
-                except:
-                    final_player = player
-
-                try:
-                    sres = self.source_def.validate(source, i)
-                    final_source = source if sres is None else sres[1]
-                except:
-                    final_source = source
-
-                self.records.append([chest, final_player, time_left, final_source])
-                records_found += 1
-
-                # Reiniciar para buscar el siguiente (aunque solo busquemos 1)
-                chest = None
-                player = None
-                source = None
-                time_left = None
-                
-                # Usamos 'continue' aquí para saltar 'i += 1' y seguir con el ciclo
-                # En la práctica, con un solo cofre, el 'while' terminará en la siguiente iteración.
-                # continue # Descomentar si se buscan multiples cofres y se quiere reiniciar el ciclo sin incrementar 'i'
-            
-            # Siempre incrementamos 'i' para avanzar a la siguiente línea.
-            # Si se usó 'continue' arriba, esta línea se salta, pero como es un solo cofre
-            # y solo hay 4 líneas, da igual. Lo importante es que no se salte 'Source' por error.
-            i += 1
-            
-        # Last record (Fallback para asegurar que el último registro incompleto se procese)
-        # Ya no es estrictamente necesario debido al 'if' dentro del bucle, pero lo mantenemos.
-        if (
-            records_found < count and
-            chest and player and source and time_left
-        ):
-            # NOTA: La validación de player/source se realizó arriba, pero la repetimos
-            # si la detección ocurrió fuera del finalizador del ciclo.
-            try:
-                pres = self.player_def.validate(player, i)
-                final_player = player if pres is None else pres[1]
-            except:
-                final_player = player
-
-            try:
-                sres = self.source_def.validate(source, i)
-                final_source = source if sres is None else sres[1]
-            except:
-                final_source = source
-                
-            self.records.append([chest, final_player, time_left, final_source])
-            records_found += 1
-
-        # If no records found (el manejo de errores al final es correcto)
-        if records_found == 0:
-            print("### No chests found!")
-            print("\n*** ERROR: The language is English?")
-            print("*** ERROR: Check captured text\n")
-
-            while True:
-                print(">>> [1] Capture again [2] Save It anyway")
-                print(">>> [3] Stop Process  [4] Show Captured text")
-
-                ans = input("\n*** [1] - [2] - [3] or [4] ? ").strip()
-
-                if ans == "4":
-                    print("\n\n************ RAW OCR TEXT ************")
-                    print(capture)
-                    print("****************************************\n")
-                    continue
-
-                if ans in ("1","2","3"):
-                    self.user_choice = ans
+            fixed = False
+            index = 0
+            for row in rows:
+                if row == ".": # Sometimes a row with just . is captured
+                    rows.pop(index)
+                    fixed = True
+                    print("Fixed OCR capture issue with just '.'")
+                elif row == "An": # Ancient problem
+                    rows.remove(row)
+                    fixed = True
+                    print("Fixed OCR capture issue with Ancient Warrior/Bastion chests")
                     break
+                elif row == "Bra" and rows[index+1] == "led Chest": # Braided Chest problem
+                    rows[index] = "Braided Chest"
+                    rows.pop(index+1)
+                    fixed = True
+                    print("Fixed OCR capture issue with Braided Chest")
+    #                break
+                elif row == "Ancient Wai" and rows[index+1].lower().find("chest") > 1: # Ancient Warrior's chest problem
+                    rows[index] = "Ancient Warrior's Chest"
+                    rows.pop(index+1)
+                    fixed = True
+                    print("Fixed OCR capture issue with Ancient Warrior's Chest")
+                elif row == "Cursed" and rows[index+1].lower().endswith("del chest"): # Cursed Citadel Chest problem
+                    rows[index] = "Cursed Citadel Chest"
+                    rows.pop(index+1)
+                    fixed = True
+                    print("Fixed OCR capture issue with Cursed Citadel Chest")
+                elif row == "e Chest," or row == "e Chest.": # Fire Chest problem
+                    rows[index] = "Fire Chest"
+                    fixed = True
+                    print("Fixed OCR capture issue with Fire Chest")
+                else:
+                    if index < len(rows) - 1:
+                        tmp = self.fix_ocr_def.fix(rows[index], rows[index+1])
+                        if tmp != "":
+                            rows[index] = tmp
+                            rows.pop(index+1)
+                            print("Fixed OCR capture issue with {}".format(tmp))
+                            fixed = True
+                index += 1
 
-            if ans == "3":
-                return False
-            if ans == "2":
-                return True
-            if ans == "1":
-                return False
+            if not fixed:
 
-        return True
-        
+                if len(rows) == 1 and rows[0] == "No gifts": # Nothing to capture
+                    print( "### No more chests to capture!")
+                    return True
+
+                print("\n\n***************** CAPTURED TEXT: ******************")
+                print(capture)
+                print("***************** CAPTURED ROWS: ******************")
+                text = ""
+                for row in rows:
+                    print(row)
+                    text += row + "\n"
+                print("\n***************** CAPTURE ERROR: ******************")
+                print("=> Error with captured rows. <=> Processing of this")
+                print("=> capture will stop! The captured text at the rows")
+                print("=> will be copied to the clipboard, check and add")
+                print("=> them manually at your 'data/captured-datas.txt'")
+                print("=> ")
+                print("=> Also note that the same correction should also")
+                print("=> be manually pasted into the current archive")
+                print("=> file, otherwise that change will not be")
+                print("=> reflected there.\n")
+
+                self.cfile.writelines("--------------- The above segment might not be present in the archive file due to processing errors\n")
+                self.cfile.flush()
+
+                clipboard.copy(text)
+
+                return False
+    
+        rows.reverse()
+        validate_line_count = 0
+
+        while len(rows) > 0:
+
+            line = rows.pop()
+            line = line.strip() # remove leading or trailing spaces
+
+            # sometimes there is an erroneous '.' captured at the end of a line
+            if line.endswith('.'):
+                line = line.strip('.')
+
+            try:
+                chest = player = source = ""
+                chest = self.chest_def.validate(line)
+                validate_line_count += 1
+                line = rows.pop()
+                player = line.strip()
+
+                # The Great Hunt chests have no player attached
+                if chest.find("eat ") > -1 and chest.find("unt") > -1:
+                    success = True
+                    player = "The Great Hunt"
+                else:
+                    success, player = self.player_def.validate(player, validate_line_count)
+                    validate_line_count += 1
+                
+                line = rows.pop()
+                source = line.strip()
+                success, source = self.source_def.validate(source, validate_line_count)            
+                validate_line_count += 1
+
+                if success and (len(chest) > 0 and len(player) > 0 and len(source) > 0):
+ 
+                    if self.debug_mode:
+                        print("Processing ({}): {},{},{},{}".format( validate_line_count, player, source, chest, self.clan))
+
+                    self.records.append([chest, player, source])
+
+                    if len(self.records) == count: # we're done
+                        break
+
+                else:
+                    print("*** OCR DETECTION ERROR: L{}".format(validate_line_count))
+                    print("*** Chest  : {}".format(chest))
+                    print("*** From   : {}".format(player))
+                    print("*** Source : {}".format(source))
+                    success = False
+                    break
+            except:
+                print("*** EXCEPTION: Chest ({}): {}, From: {}, Source: {}".format( validate_line_count, chest, player, source))
+                success = False
+                break
+
+        return success
+
+# ---------------------------------------------------------------------------------------------------------------
+# Save Chest, From and Source to the data-file
+# ---------------------------------------------------------------------------------------------------------------
+
     def save_records(self):
-        """Save records to output files with 4-field format (including seconds in time)"""
-        
+    
         index = 0
         rows = list()
 
         while index < len(self.records):
             chest = self.records[index][0]
             player = "From : " + self.records[index][1]
-            time_left = "Time left : " + self.records[index][2]  # Now includes seconds
-            source = "Source : " + self.records[index][3]
+            source = "Source : " + self.records[index][2]
 
             print("\n-------------------------------------------------------")
             print("{}".format(chest))
             print("{}".format(player))
-            print("{}".format(time_left))  # Will show "X h : Y m : Z s"
             print("{}".format(source))
             print("-------------------------------------------------------")
 
             rows.append(chest)
             rows.append(player)
-            rows.append(time_left)
             rows.append(source)
             index += 1
 
@@ -1303,7 +909,8 @@ class TBCapture(object):
         self.wfile.flush()
 
         print("Records saved...\n")
-    # ---------------------------------------------------------------------------------------------------------------
+        
+# ---------------------------------------------------------------------------------------------------------------
     def run(self):
 
         value = ""
@@ -1321,25 +928,9 @@ class TBCapture(object):
 
         while True:
             print("\n\n>>>>> OCR processing {}/{}....".format(self.totalClicks+1, maxClicks))
-            # CAPTURA 1: Información principal (Chest, From, Source)
-            image_main = self.screen.get_screenshot(self.config.x1, self.config.y1, 
-                                                    self.config.x2, self.config.y2)
-            image_main = self.screen.get_grayscale(numpy.array(image_main))
-            capture_main = self.screen.ocr_core(image_main)
-            
-            # CAPTURA 2: Time Left (área específica)
-            image_time = self.screen.get_screenshot(self.config.time_x1, self.config.time_y1,
-                                                    self.config.time_x2, self.config.time_y2)
-            # ANTES:
-            #capture_time = self.screen.ocr_core(image_time)
-
-            # DESPUÉS:
-            capture_time = self.screen.ocr_time_specialized(image_time)
-            
-            # MERGE BOTH CAPTURES
-            capture = capture_main + "\n" + capture_time
-            
-            # print(f"\n### TIME CAPTURE: '{capture_time}'") # Desactivado:
+            image = self.screen.get_screenshot(self.config.x1, self.config.y1, self.config.x2, self.config.y2)
+            image = self.screen.get_grayscale(numpy.array(image))
+            capture = self.screen.ocr_core(image)
             count = 4 # chests on the screen
 
             # make sure we don't capture more than the specified number of chests
@@ -1349,8 +940,8 @@ class TBCapture(object):
             success = self.validate_capture(capture, count)
             
             if len(self.records) < count and len(self.records) > 0: # did we capture less than the specified number?
-                nofunc = maxClicks +1
-
+               nofunc = maxClicks +1
+ 
             if success and len(self.records) == 0: # success but nothing was captured so stop
                 print("\n*** {} from {} Chests saved. Process cancelled.\n".format(self.totalClicks, maxClicks))
                 break
@@ -1415,12 +1006,10 @@ class TBCapture(object):
 
         self.player_def.save()
 
-                
         if not success:
             print("\n****************************************")
             print("** THERE ARE ERRORS IN THE PROCESSING **")
             print("****************************************")
-
 
 # TBProcess ------------------------------------------------------------------------------------------------------
 class TBProcess(object):
@@ -1454,20 +1043,18 @@ class TBProcess(object):
         if args.start_date:
             self.start_date = args.start_date
             odc = 1
-            print("*** Start-Date! {}".format(odc))
+            #print("*** Start-Date! {}".format(odc))
             
         if args.end_date:
             self.end_date = args.end_date
             odc = 1
-            print("*** End-Date! {}".format(odc))
+            #print("*** End-Date! {}".format(odc))
             
         self.player_summary = {}
         self.citadel_summary = {}
 
         if config.player_file:
             with open(config.player_file) as pfp:
-            # ---> SE HA AÑADIDO 'encoding='latin-1'' AQUÍ <--- YOZAHM
-            #with open(config.player_file, encoding='latin-1') as pfp:
                 for cmt, player_line in enumerate(pfp):
                     kvp_string = player_line.strip()
                     kvp = kvp_string.split(",")
@@ -1491,6 +1078,44 @@ class TBProcess(object):
         word1 = "Jack Reaper Chest"         #line1
         word2 = "Pumpkin"                   #line3
         nword2 = "Epic Jack Reaper Chest"   #new line3
+
+        # Read datafile
+        if os.path.exists(datafile):
+            with open(datafile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the datafile back
+            with open(datafile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+        # same fix for total-datas!
+        if os.path.exists(totalfile):
+            with open(totalfile, 'r') as f:
+                lines = f.readlines()
+            i = 0
+            while i < len(lines) - 2: 
+                if word1 in lines[i] and word2 in lines[i+2]:
+                    lines[i+2] = lines[i+2].replace(word2, nword2)
+                i += 3
+            # Save the totalfile back
+            with open(totalfile, 'w') as f:
+                f.writelines(lines)
+        else:
+            none=True
+
+        # Line1 is the epic chestname, but in line 3 is the same name than other normal chests, so find the
+        # epic chests in line 1 + normal chests in line 3, if line1+3 = True than rename the normal chest
+        # in line 3 to a epic chest, to calculate points.
+
+        word1 = "Arcane Chest"                  #line1
+        word2 = "Dark Omens event"              #line3
+        nword2 = "Epic Dark Omen Arcane Chest"  #new line3
 
         # Read datafile
         if os.path.exists(datafile):
@@ -1658,6 +1283,7 @@ class TBProcess(object):
             ofile += '_TB_Chests'
             ofile += '_' +self.config.clan
             ofile += '_' + "FINAL"
+            ofile += '_' +self.config.zip
             ofile += '.txt'
 
             opf = open(ofile, 'w')
@@ -1759,7 +1385,7 @@ class TBProcess(object):
             current_date = dt.date.today()
             processing_date = current_date.strftime("%Y-%m-%d")
             file_pattern = self.config.final_dir + "/" + processing_date
-            file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL.txt"
+            file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL_" + self.config.zip + ".txt"
             file_list = glob.glob(file_pattern)
         else:
             date_start = datetime.strptime(self.start_date,"%Y-%m-%d")
@@ -1774,7 +1400,7 @@ class TBProcess(object):
             while True:
                 processing_date = date_start.strftime("%Y-%m-%d")
                 file_pattern = self.config.final_dir + "/" + processing_date
-                file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL.txt"
+                file_pattern += "_TB_Chests_" + self.config.clan + "_FINAL_" + self.config.zip + ".txt"
 
                 file_list.append(file_pattern)
 
@@ -1827,7 +1453,7 @@ class TBProcess(object):
 
         file = self.config.final_dir + "/" + processing_date
         file += "_TB_PlayerSummary_" + self.config.clan
-        file += "_FINAL.txt"
+        file += "_FINAL_" + self.config.zip + ".txt"
 
         opf = open(file, 'w')
         opf.writelines("PLAYER,SCORE,CHEST\n")
@@ -1852,7 +1478,8 @@ class TBProcess(object):
             splitfile               = re.split(r'[/.]+',fullfile)
             var1, var2, var3, var4  = splitfile
             var5                    = self.config.clan
-            savefile                = f"../{var2}/{processing_date}_{var3}_{var5}_FINAL.txt"
+            clip                    = self.config.zip
+            savefile                = f"../{var2}/{processing_date}_{var3}_{var5}_FINAL_{clip}.txt"
             
             # Datafile is present and no OneDayCapture than copy the capture-file with process-date:
             if checkfile.is_file() and odc == 0:
@@ -1885,7 +1512,7 @@ class TBProcess(object):
 
             file_pattern = self.config.final_dir + "/TB_Chests"
             file_pattern += "_" + self.config.clan
-            file_pattern += "_*_FINAL.txt"
+            file_pattern += "_*_FINAL_" + self.config.zip + ".txt"
     
             file_list = glob.glob(file_pattern)
         else:
@@ -1905,7 +1532,7 @@ class TBProcess(object):
 
                 file_pattern = self.config.final_dir + "/TB_Chests"
                 file_pattern += "_" + self.config.clan
-                file_pattern += "_" + processing_date + "_FINAL.txt"
+                file_pattern += "_" + processing_date + "_FINAL_" + self.config.zip + ".txt"
     
                 file_list.append(file_pattern)
 
@@ -1955,7 +1582,8 @@ class TBProcess(object):
         file += "_" + self.config.clan
         if date_tag != "":
             file += "_" + date_tag
-        file += "_FINAL"
+        file += "_FINAL_"
+        file += self.zip
         file += ".txt"
 
         opf = open(file, 'w')

@@ -1,0 +1,11 @@
+--------------- 2026-01-13 20:01:37 --------------------------
+a5 oe
+--------------- The above segment might not be present in the archive file due to processing errors
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-13 20:01:50 --------------------------
+a5 oe
+--------------- The above segment might not be present in the archive file due to processing errors
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-13 20:01:53 --------------------------
+at
+--------------- The above segment might not be present in the archive file due to processing errors

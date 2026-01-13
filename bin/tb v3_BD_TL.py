@@ -26,6 +26,9 @@ from PIL import ImageGrab
 import pyautogui, sys
 import pygetwindow
 
+from TBDatabase import TBDatabase
+from TBDatabaseIntegration import TBDatabaseIntegration
+
 
 # ---------------- CONFIGURACIÓN ABSOLUTE PATH DE TESSERACT -------------------------------------------------------
 
@@ -33,9 +36,7 @@ import pygetwindow
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ---------------- CHECK ABSOLUTE PATH END ---------------------------------------------------
-# Archivos de log
-LOG_CORRECTIONS = Path('working/ocr_corrections.log')
-LOG_MISSING_TIME = Path('working/missing_timeleft.log')
+
 
 # 2. CLASE TBConfig (CONFIGURACIÓN ESCALABLE) ------------------------------------------------------------
 
@@ -44,7 +45,7 @@ class TBConfig(object):
     Clase para parsear y gestionar parámetros de archivo de configuración: config/config.cfg.
     Mejorada para manejar clanes de forma escalable y asegurar tipos de datos.
     """
-    # ------------------------------------------------------------------------------------------------------
+    
     def __init__(self, config_file, clickWait):
         config_kvp = {}
 
@@ -89,7 +90,7 @@ class TBConfig(object):
             self.time_y1         = config_kvp.get('time_y1', '')
             self.time_x2         = config_kvp.get('time_x2', '')
             self.time_y2         = config_kvp.get('time_y2', '')
-            # --------------------------------------------------------------------
+                        
             self.clickWait       = config_kvp.get('clickWait', clickWait)
             self.fixwords        = config_kvp.get('fixwords', '')
             self.clangui         = config_kvp.get('clanname1', '')
@@ -114,27 +115,31 @@ class TBConfig(object):
                         
 #  3. BScreen: CLASES DE PANTALLA Y UTILIDADES OCR -----------------------------------------------------------------------------
 class TBScreen(object):
-    
     """ This class takes the screen capture and runs the OCR processing, and contains image processing functions """
     """Manejo de captura de pantalla, preprocesamiento y OCR."""
-# ------------------------------------------------------------------------------------------------------
-#   def init__(self):
 
-# ------------------------------------------------------------------------------------------------------
     def get_screenshot(self, x, y, dx, dy):
+        """Captura screenshot y devuelve PIL Image"""
         image = ImageGrab.grab(bbox=(int(x), int(y), int(dx), int(dy)))
         return image
-# ------------------------------------------------------------------------------------------------------
-    def get_grayscale(self,img):
-        return cv2.cvtColor( img, cv2.COLOR_RGB2GRAY)
-# ------------------------------------------------------------------------------------------------------
-    def remove_noise(self,img):
+
+    def get_grayscale(self, img):
+        """Convierte imagen a escala de grises (acepta PIL o numpy)"""
+        # Si es PIL Image, convertir a numpy primero
+        if hasattr(img, 'mode'):
+            img = numpy.array(img)
+        return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+    def remove_noise(self, img):
+        """Elimina ruido de la imagen"""
         return cv2.medianBlur(img, 5)
-# ------------------------------------------------------------------------------------------------------
-    def thresholding(self,img):
-        return cv2.threshold( img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-# ------------------------------------------------------------------------------------------------------
-    def ocr_core(self,img):
+
+    def thresholding(self, img):
+        """Aplica threshold binario"""
+        return cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+    def ocr_core(self, img):
+        """OCR SIMPLE - básico que funciona"""
         text = pytesseract.image_to_string(img, lang='eng', config='--psm 12 --oem 1')
         return text
     
@@ -178,7 +183,7 @@ class TBScreen(object):
         
         text = pytesseract.image_to_string(img, lang='eng', config=config)
         return text.strip()
-
+    
 # 4. TBFixOCR CLASE DE MODELADO DE DATOS Y LIMPIEZA OCR (Placeholders) ------------------------------------------------
 # Estas clases se mantienen para modularidad, asumiendo que implementan la lógica de validación
 # y carga de archivos CSV de forma robusta.
@@ -187,7 +192,7 @@ class TBFixOCR(object):
         The format in the config file should be:
         CorrectValue, IncorrectFirstine, IncorrectSecondLine
     """
-# ------------------------------------------------------------------------------------------------------
+    
     def __init__(self, fix_ocr_file):
 
         self.fixed = {}
@@ -205,7 +210,7 @@ class TBFixOCR(object):
                     self.fix_ocr[kvp[1].lower()] = kvp[2]
         else:
             print("### No OCR Fix configration file")
-# -------------------------------------------------------------------------------
+
     def fix(self, line1, line2):
         if self.fix_ocr.get(line1.lower()) == None:
             return ""
@@ -217,14 +222,15 @@ class TBFixOCR(object):
 # TBPlayer ------------------------------------------------------------------------------------------------------
 class TBPlayer(object):
     """ This class parses PLAYER configuration parameters and validates player names captured by the OCR """
-# ------------------------------------------------------------------------------------------------------
-    def __init__(self, player_file):
+
+    def __init__(self, player_file, db=None):
 
         self.player_file = player_file
         self.player_set = set()
         self.player_kvp = {}
         self.player_set_changed = False
-
+        self.db = db  # 🔧 AGREGAR ESTA LÍNEA
+        
         if player_file:
             with open(player_file) as pfp:
                 for cmt, player_line in enumerate(pfp):
@@ -237,7 +243,7 @@ class TBPlayer(object):
                     for player_alias in kvp[1:]:
                         self.player_kvp[player_alias.lower()] = kvp[0]
 
-# -------------------------------------------------------------------------------
+
     def save(self):
 
         if self.player_set_changed and self.player_file:
@@ -265,119 +271,114 @@ class TBPlayer(object):
 
                 print("New Player has been saved to {}\n".format(self.player_file))
 
-# -------------------------------------------------------------------------------
     def validate(self, player, line):
         
         # assume success...
         success = True
+        
+        # The player string should already be clean (just the player name)
+        # from validate_capture() extraction
+        player = player.strip()
 
-        if player in self.player_set: # avoid the error when the record contains only a player name but one that is correct
-            print("Record is malformed but consists of a correct player name {} so processing can continue.".format(player))
+        if player in self.player_set:
+            # Player is already known and correct
+            return True, player
 
+        # Player not in known list - try to find a match
+        
+        # attempt a fuzzy match
+        best_score = 0
+        best_string = ""
+
+        for tmp_player in self.player_set:
+            tmp_score = SM(None, player, tmp_player).ratio()
+            if tmp_score > best_score:
+                best_string = tmp_player
+                best_score = tmp_score
+
+        if best_score > 0.75:
+            print("\nFUZZY LOGIC: Player {}".format(player))
+            print("MAPPED TO  : Player {}".format(best_string))
+            return True, best_string  # Return matched player
+
+        # look in alias map
+        tmp_player = self.player_kvp.get(player.lower())
+
+        if tmp_player is not None:
+            # Found in alias map
+            print("\nFUZZY LOGIC: Player {}".format(player))
+            print("MAPPED TO  : Player {}".format(tmp_player))
+            return True, tmp_player
+
+        # Unknown player - ask user
+        print("\n* ATTENTION: UNKNOWN OR NEW PLAYER")
+        print("- Press <Enter> if player '{}' is correct".format(player))
+        print("- Or type the correct 'Name/Alias' for the player") 
+        print("- Or type '-' to abort the process!\n")
+        player_name = input("<Enter> or ['Name/Alias'] or ['-']: ").strip()
+            
+        if player_name == "-":
+            return False, player
         else:
-            splitter = ""
+            player_alias = player
 
-            # check all since the OCR sometimes gets it wrong
-            if player.find(":") > -1 or player.find(";") > -1 or player.find(".") > -1 or player.find(",") > -1:
-                if player.find(":") > -1:
-                    splitter = ":"
-                elif player.find(";") > -1:
-                    splitter = ";"
-                elif player.find(".") > -1:
-                    splitter = "."
-                elif player.find(",") > -1:
-                    splitter = ","
+            if len(player_name) > 0:
+                player = player_name
 
-            if splitter == "": # none of the above chars were found in the string
-
-                if not player.lower().startswith("fr") and not player.startswith("ro") and not player.startswith("om"):
-
-                    print("*** ERROR: Malformed record '{}' at line {} - it".format(player, line))
-                    print("*** ERROR: should have the format 'From : PlayerName'")
-                    success = False
-
-                elif player.lower().find("fr ") > -1 or player.lower().find("ro ") > -1 or player.find("om ") > -1:
-                    splitter = " "
-                else:
-                    print("*** ERROR: Malformed record '{}' at line {} - it".format(player, line))
-                    print("*** ERROR: should have the format 'From : PlayerName'")
-                    success = False
-
-            split_player = player.split(splitter, 1)
-            player = split_player[1].strip()
-
-        # handle OCR issues with player names
-        if player.endswith('.'):
-            player = player.replace('.','')
-
-        # player name not in players file or malformed by OCR
-        if player not in self.player_set:
-
-            # attempt a fuzzy match
-            best_score = 0
-            best_string = ""
-
-            for tmp_player in self.player_set:
-                        
-                tmp_score = SM(None, player, tmp_player).ratio()
-                if tmp_score > best_score:
-                    best_string = tmp_player
-                    best_score = tmp_score
-
-            if best_score > 0.75:
-                print("\nFUZZY LOGIC: Player {}".format(player))
-                print("MAPPED TO  : Player {}".format(best_string))
-                player = best_string # set player to the best matched string
-
-            else:
-                # look in alias map
-                tmp_player = self.player_kvp.get(player.lower())
-
-                if tmp_player == None: # alias for this player is not defined
-                    print("\n* ATTENTION: UNKNOWN OR NEW PLAYER")
-                    print("- Press <Enter> if player '{}' is correct".format(player))
-                    print("- Or type the correct 'Name/Alias' for the player") 
-                    print("- Or type '-' to abort the process!\n")
-                    player_name = input("<Enter> or ['Name/Alias'] or ['-']: ".format(player)).strip()
-                        
-                    if player_name == "-":
-                        success = False
+            # 🔧 CRÍTICO: Guardar estado ANTES de modificar player_set
+            is_new_player = player not in self.player_set
+            
+            if is_new_player:
+                self.player_set_changed = True
+                self.player_set.add(player)
+            
+            # 🔧 NUEVO: Insertar en BD inmediatamente si es jugador nuevo
+            if is_new_player and self.db:
+                try:
+                    cursor = self.db.conn.cursor()
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO players_ocr (name_player)
+                        VALUES (?)
+                    """, (player,))
+                    self.db.conn.commit()
+                    
+                    # Verificar que se insertó
+                    cursor.execute("""
+                        SELECT id_player FROM players_ocr WHERE name_player = ?
+                    """, (player,))
+                    result = cursor.fetchone()
+                    
+                    if result:
+                        print(f"### ✅ Player '{player}' added to database successfully (ID: {result[0]})")
                     else:
-                        player_alias = player
+                        print(f"### ⚠️ WARNING: Player '{player}' was not inserted")
+                        
+                except Exception as e:
+                    print(f"### ❌ ERROR: Could not add player to database: {e}")
+                    import traceback
+                    traceback.print_exc()
 
-                        if len(player_name) > 0:
-                            player = player_name
- 
-                        if player not in self.player_set:
-                            self.player_set_changed = True
-                            self.player_set.add(player)
+            if player_alias not in self.player_kvp:
+                save_alias = "y"
 
-                        if player_alias not in self.player_kvp:
-                            save_alias = "y"
+                if player_alias != player:
+                    while True:
+                        save_alias = input("Is '{}' a good alias to save for {} (<Enter>/n, '-' to exit) ? ".format(player_alias, player)).strip()
+                        if save_alias == "n" or save_alias == "-" or len(save_alias) == 0:
+                            break
 
-                            if player_alias != player: # only ask if the alias is different from the player name
-                                while True:
-                                    save_alias = input("Is '{}' a good alias to save for {} (<Enter>/n, '-' to exit) ? ".format(player_alias, player)).strip()
-                                    if save_alias == "n" or save_alias == "-" or len(save_alias) == 0:
-                                        break
+                if len(save_alias) == 0:
+                    self.player_kvp[player_alias.lower()] = player
+                    self.player_set_changed = True
+                elif save_alias == "-":
+                    return False, player
 
-                            if len(save_alias) == 0:
-                                self.player_kvp[player_alias.lower()] = player
-                                self.player_set_changed = True
-                            elif save_alias == "-":
-                                success = False
-
-                else:
-                    print("\nFUZZY LOGIC: Player {}".format(player))
-                    print("MAPPED TO  : Player {}".format(tmp_player))
-                    player = tmp_player # set player to the correct string
-
-        return success, player
+            return True, player
 
 # TBChest ------------------------------------------------------------------------------------------------------
 class TBChest(object):
     """ This class parses CHEST configuration parameters and validates chest names captured by the OCR """
-# ------------------------------------------------------------------------------------------------------
+
     def __init__(self, quality_file):
 
         self.quality_kvp = {}
@@ -390,7 +391,7 @@ class TBChest(object):
                     for player_alias in kvp[1:]:
                         self.quality_kvp[player_alias] = kvp[0]
 
-# ------------------------------------------------------------------------------------------------------
+
     def validate(self, chest):
 
         # fix lowercase issue that happens too often
@@ -439,71 +440,82 @@ class TBChest(object):
 # TBSource ------------------------------------------------------------------------------------------------------
 class TBSource(object):
     """ This class validates chest SOURCE information captured by the OCR """
-# ------------------------------------------------------------------------------------------------------    
+    
     def validate(self, source, line):
+        """
+        Improved validation that recognizes all common chest sources.
+        Much more flexible and tolerant of OCR errors.
+        """
         success = True
-
-        # Error checking in case of crappy OCR 
-        if not source.startswith("Source") and not source.startswith("source") and not source.startswith("ource") and not source.startswith("urce") and not source.startswith("rce") and not source.startswith("ce"):
-            print("\n*** ERROR: Malformed record '{}' at line {}".format(source, line))
-            print("*** ERROR: It should have the format 'Source : Bank/Crypt/...'")
-            return False, source
-
-        # check all since the OCR sometimes gets it wrong
-        if source.find(":") > -1 or source.find(";") > -1 or source.find(".") > -1 or source.find(",") > -1:
-            if source.find(":") > -1:
-                splitter = ":"
-            elif source.find(";") > -1:
-                splitter = ";"
-            elif source.find(".") > -1:
-                splitter = "."
-            elif source.find(",") > -1:
-                splitter = ","
-        else:
-            # extra checks to work around kinks in the OCR software and allow automated processing
-            if source.find("Source ") or source.find("ource ") or source.find("urce ") or source.find("rce ") or source.find("ce "):
-                splitter = " "
-            else:
-                print("\n*** ERROR: Malformed record '{}' at line {} ".format(source, line))
-                print("***ERROR: It should have the format 'Source : Bank/Crypt/...'")
-                return False, source
-
-        split_source = source.split(splitter, 1)
-        source = split_source[1].strip()
-
-        # add some processing to fix bad OCR scanning of chest and Crypt names
+        
+        # Normalize: remove "Source:" prefix if present
+        source = source.strip()
+        if source.lower().startswith("source"):
+            source = source.split(":", 1)[-1].strip() if ":" in source else source[6:].strip()
+        
+        # List of known source types (case-insensitive check)
+        source_lower = source.lower()
+        
+        # Check if it matches any known source category
+        is_known_source = any(keyword in source_lower for keyword in [
+            "crypt", "raid", "citadel", "bank", "wealth", "monster", 
+            "tournament", "workshop", "store", "shop", "dungeon", 
+            "arena", "treasure", "gift", "victory", "reward", "battle",
+            "clash", "hermes", "jormungandr", "curse", "personal", "ancients", "squad"
+        ])
+        
+        # If it's a known source type, just do minimal OCR corrections
+        if is_known_source:
+            source = self._fix_ocr_errors(source)
+            return True, source
+        
+        # If it doesn't contain any known keyword, print warning but accept it
+        print("\n*** WARNING: Unknown source type at line {}: '{}'".format(line, source))
+        print("*** Attempting to process anyway...")
+        
+        source = self._fix_ocr_errors(source)
+        return True, source
+    
+    # -----------------------------------------------
+    def _fix_ocr_errors(self, source):
+        """
+        Fix common OCR mistakes in source names.
+        Handles incomplete words and case issues.
+        """
+        
+        # Fix incomplete "Crypt"
         if source.endswith("Cr"):
             source += "ypt"
         elif source.endswith("Cry"):
             source += "pt"
-        else:
-            if source.endswith("Cryp"):
-                source += "t"
-        # Chest
+        elif source.endswith("Cryp"):
+            source += "t"
+        
+        # Fix incomplete "Chest"
         if source.endswith("Ch"):
             source += "est"
         elif source.endswith("Che"):
             source += "st"
         elif source.endswith("Ches"):
             source += "t"
-
-        # Clan wealth
+        
+        # Fix incomplete "Wealth"
         if source.endswith("wea"):
             source += "lth"
         elif source.endswith("weal"):
             source += "th"
         elif source.endswith("wealt"):
             source += "h"
-
-        # Monster
+        
+        # Fix incomplete "Monster"
         if source.endswith("Mons"):
             source += "ter"
         elif source.endswith("Monst"):
             source += "er"
         elif source.endswith("Monste"):
             source += "r"
-
-        # Citadel
+        
+        # Fix incomplete "Citadel"
         if source.endswith("Ci"):
             source += "tadel"
         elif source.endswith("Cit"):
@@ -514,8 +526,8 @@ class TBSource(object):
             source += "el"
         elif source.endswith("Citade"):
             source += "l"
-
-        # Authority Rush tournament
+        
+        # Fix incomplete "Tournament"
         if source.endswith("tourna"):
             source += "ment"
         elif source.endswith("tournam"):
@@ -524,24 +536,37 @@ class TBSource(object):
             source += "nt"
         elif source.endswith("tournamen"):
             source += "t"
-
-        # Bank                    
+        
+        # Fix incomplete "Bank"
         if source.endswith("Ba"):
             source += "nk"
         elif source.endswith("Ban"):
             source += "k"
-		
+        
+        # Fix incomplete "Workshop"
+        if source.endswith("Worksho"):
+            source += "p"
+        
+        # Fix incomplete "Raid"
+        if source.endswith("Rai"):
+            source += "d"
+        
+        # Capitalize common keywords for consistency
         source = source.replace("crypt", "Crypt")
         source = source.replace("chest", "Chest")
         source = source.replace("citadel", "Citadel")
         source = source.replace("monster", "Monster")
-            
-        return True, source
+        source = source.replace("bank", "Bank")
+        source = source.replace("wealth", "Wealth")
+        source = source.replace("tournament", "Tournament")
+        source = source.replace("workshop", "Workshop")
+        source = source.replace("raid", "Raid")
+        
+        return source
 
-
-# NEW MODIFICATION YOZAHM
-# 2.5 CLASE TBTimeLeft (PARSEO Y CORRECCIÓN DE TIEMPO RESTANTE) ------------------------------------------
-# --------------------------------------------------------------------------------------------------------
+# ============================================================================
+# TBTimeLeft CLASS - Extraction and Validation of "Time left" field
+# ============================================================================
 class TBTimeLeft:
     """
     Robust extractor + validator for "Time left" OCR strings.
@@ -1020,13 +1045,18 @@ class TBCapture(object):
         self.debug_mode             = args.verbose
         self.clickWait              = args.clickWait
         self.config                 = config
+        
+        self.db = None  # Inicializar variable
+        self.db_integration = None  
 
-        self.player_def             = TBPlayer(config.player_file)
+        #self.player_def             = TBPlayer(config.player_file)
         self.chest_def              = TBChest(config.quality_file)
         self.source_def             = TBSource()
         self.screen                 = TBScreen()
         self.fix_ocr_def            = TBFixOCR(config.fix_ocr_file)
         self.time_left_def          = TBTimeLeft()
+        
+
         
         workfile = config.working_dir + '/TB_Capture_Clean'
         if len(config.clan) > 0:
@@ -1039,6 +1069,34 @@ class TBCapture(object):
             capturefile += '_' + config.clan
         capturefile += '_' + self.processing_datetime
         capturefile += '.txt'
+        
+        # Conectar con base de datos
+        try:
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(project_root, "data", "db", "tb_chests.db")
+            self.db = TBDatabase(db_path)
+            
+            # Cargar datos de configuración en la BD
+            config_players = os.path.join(project_root, "config", "players.csv")
+            config_members = os.path.join(project_root, "config", "clan_members.csv")
+            config_scores = os.path.join(project_root, "config", "scores-hlo.csv")
+            
+            self.db.load_config_data(config_players, config_members, config_scores)
+            
+            # Inicializar integración
+            self.db_integration = TBDatabaseIntegration(
+                self.db,
+                clan_name=config.clan,
+                id_user=None,  # O pasar usuario si está disponible
+                verbose=args.verbose
+            )
+        except Exception as e:
+            print(f"[WARNING] No se pudo conectar con la BD: {e}")
+            self.db = None
+            self.db_integration = None
+
+        # 🔧 NUEVO: Crear TBPlayer DESPUÉS de tener self.db
+        self.player_def = TBPlayer(config.player_file, db=self.db)
         
         self.wfile = open(workfile, 'w')
         self.sfile = open(config.datafile,'a')
@@ -1301,6 +1359,10 @@ class TBCapture(object):
         self.sfile.flush()
         self.tfile.flush()
         self.wfile.flush()
+        
+        # Sincronizar con base de datos si está disponible
+        if self.db_integration and len(self.records) > 0:
+            self.db_integration.sync_records(self.records)
 
         print("Records saved...\n")
     # ---------------------------------------------------------------------------------------------------------------
@@ -1414,7 +1476,9 @@ class TBCapture(object):
                 break
 
         self.player_def.save()
-
+        # Cerrar conexión con BD
+        if self.db:
+            self.db.close()
                 
         if not success:
             print("\n****************************************")
@@ -1497,9 +1561,9 @@ class TBProcess(object):
             with open(datafile, 'r') as f:
                 lines = f.readlines()
             i = 0
-            while i < len(lines) - 2: 
-                if word1 in lines[i] and word2 in lines[i+2]:
-                    lines[i+2] = lines[i+2].replace(word2, nword2)
+            while i < len(lines) - 3: 
+                if word1 in lines[i] and word2 in lines[i+3]:
+                    lines[i+3] = lines[i+3].replace(word2, nword2)
                 i += 3
             # Save the datafile back
             with open(datafile, 'w') as f:
@@ -1512,9 +1576,9 @@ class TBProcess(object):
             with open(totalfile, 'r') as f:
                 lines = f.readlines()
             i = 0
-            while i < len(lines) - 2: 
-                if word1 in lines[i] and word2 in lines[i+2]:
-                    lines[i+2] = lines[i+2].replace(word2, nword2)
+            while i < len(lines) - 3: 
+                if word1 in lines[i] and word2 in lines[i+3]:
+                    lines[i+3] = lines[i+3].replace(word2, nword2)
                 i += 3
             # Save the totalfile back
             with open(totalfile, 'w') as f:
@@ -1669,35 +1733,41 @@ class TBProcess(object):
             while True:
 
                 try:
-                    chest = player = source = ""
+                    chest = player = time_left = source = ""
 
+                    # FIXED: Read chest name (line 1)
                     line = fp.readline()
                     if not line:
                         break
-
                     chest = line.strip()
                     source_line_count += 1
 
+                    # FIXED: Read player (line 2)
                     line = fp.readline()
                     if not line:
                         break
-
                     splitter = ":"
-
                     player = line.strip()
                     split_player = player.split(splitter, 1)
                     player = split_player[1].strip()
-
                     source_line_count += 1
 
+                    # FIXED: Read time_left (line 3) - NEW LINE!
                     line = fp.readline()
                     if not line:
                         break
+                    time_left = line.strip()
+                    split_time = time_left.split(splitter, 1)
+                    time_left = split_time[1].strip() if len(split_time) > 1 else time_left
+                    source_line_count += 1
 
+                    # FIXED: Read source (line 4)
+                    line = fp.readline()
+                    if not line:
+                        break
                     source = line.strip()
                     split_source = source.split(splitter, 1)
                     source = split_source[1].strip()
-
                     source_line_count += 1
 
                     if len(chest) > 0 and len(player) > 0 and len(source) > 0:
@@ -1706,22 +1776,28 @@ class TBProcess(object):
                         parsed_line_count += 1
 
                         if self.debug_mode:
-                            print("Processing ({}/{}): {},{},{},{},{},{}".format( parsed_line_count, source_line_count, processing_date, player, source, chest, score, self.config.clan))
+                            print("Processing ({}/{}): {},{},{},{},{},{}".format( 
+                                parsed_line_count, source_line_count, 
+                                processing_date, player, source, chest, score, self.config.clan))
 
                         opf.writelines(processing_date+','+player+','+source+','+chest+','+score+','+self.config.clan+'\n')
                     else:
-                        print("*** ERROR: Failed to parse chest ({}/{}): {}, From: {}, Source: {}".format( parsed_line_count, source_line_count, chest, player, source))
+                        print("*** ERROR: Failed to parse chest ({}/{}): {}, From: {}, Source: {}".format( 
+                            parsed_line_count, source_line_count, chest, player, source))
                         success = False
                         break
                 except:
-                        print("*** EXCEPTION: Chest ({}/{}): {}, From: {}, Source: {}".format( parsed_line_count, source_line_count, chest, player, source))
+                        print("*** EXCEPTION: Chest ({}/{}): {}, From: {}, Time: {}, Source: {}".format( 
+                            parsed_line_count, source_line_count, chest, player, time_left, source))
                         success = False
                         break
-               
+            
             opf.close()
 
-        if parsed_line_count != source_line_count / 3:
-            print("*** ERROR Mismatch between procseed line count and source line count: {} != {} / 3".format(parsed_line_count,source_line_count))
+        # FIXED: Now dividing by 4 (was 3 before)
+        if parsed_line_count != source_line_count / 4:
+            print("*** ERROR Mismatch between processed line count and source line count: {} != {} / 4".format(
+                parsed_line_count, source_line_count))
             success = False
 
         print("\n\n\n")
@@ -2070,14 +2146,19 @@ elif args.process:
 
 while True: 
     print("\n")
-    print(">>> Back to PowerShell GUI?")
+    #print(">>> Back to PowerShell GUI?")
+    print(">>> What do you want to do next?")
     print(">>> 1 : Clan {}".format(clan1))
     print(">>> 2 : Clan {}".format(clan2))
     print(">>> 3 : Clan {}".format(clan3))
     print(">>> 4 : Clan {}".format(clan4))
+    print(">>> 5 : Capture More Chests (SAME CLAN)")
     print(">>> all other keys for Exit \n")
     import subprocess
-    choice = input("[1] - [2] - [3] - [4] or [eXit] ? ")
+    choice = input("[1] - [2] - [3] - [4] - [5] or [eXit] ? ")
+    # se añade la definición que faltaba para la opción 5 y se corrige su ejecución.
+    capture_command_base = r"py .\tb.py --config ..\config\config.cfg --capture" 
+    
     if choice.lower() == "1":
             command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath1}\""
             result = subprocess.run(command)
@@ -2094,6 +2175,17 @@ while True:
             command = f"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"{pshellpath4}\""
             result = subprocess.run(command)
             break
+    elif  choice.lower() == "5": # Lógica para la nueva opción [5]
+        # Ejecuta la captura de cofres
+        print(">> Launching Chest Capture...")
+        
+        # El comando es solo la ejecución del script Python, no necesita el wrapper de powershell.exe
+        # La ejecución de 'py .\\tb.py...' se realiza directamente a través de shell=True
+        command = capture_command_base
+        result = subprocess.run(command, shell=True)
+        break # Sale del menú y ejecuta la captura
+        
+        # Llama al comando de captura.
     else:
             print("\nEXIT\n")
             break

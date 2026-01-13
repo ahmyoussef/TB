@@ -4,10 +4,10 @@
     
 # Type your clan as example $clanname2 = 'Silver Dragons'
 # see your configuration file config/config.cfg for $clanname!
-    $clanname2 = 'Type your clan #2 here'
+    $clanname2 = 'LUNA'
 
 # -- Correct install-path, if needed --
-    $main = "c:\chest-counter\"
+    $main = "c:\TB\"
 # -------------------------------------
         
         # do not touch!
