@@ -1,0 +1,328 @@
+FLUJO GENERAL Y LÓGICA DEL PROGRAMA tb.py
+
+ESTRUCTURA GENERAL:
+El programa tb.py es un sistema de captura OCR para registrar cofres del juego Total Battle. Funciona en 3 modos principales:
+
+CALIBRATION MODE (--calibrate)
+CAPTURE MODE (--capture)
+PROCESS MODE (--process)
+
+
+FLUJO PRINCIPAL:
+
+INICIO
+  │
+  ├─> Parsear argumentos de línea de comandos
+  │
+  ├─> Cargar configuración desde config.cfg (TBConfig)
+  │
+  └─> Determinar modo de ejecución:
+       │
+       ├─> [--calibrate] → TBCalibration.run()
+       │
+       ├─> [--capture]   → TBCapture.run()
+       │
+       └─> [--process]   → TBProcess.run()
+
+==MODO 1: CALIBRATION (--calibrate) ===
+Propósito: Configurar coordenadas de pantalla para captura OCR
+
+CALIBRATION MODE
+  │
+  ├─> Mostrar menú:
+  │    [1] Calibrar área de texto (x1,y1,x2,y2)
+  │    [2] Calibrar botón OPEN (mx,my)
+  │    [3] Calibrar area de seccion TIME LEFT OPEN (x1,y1,x2,y2)-> falta implementar de forma automatica esta parte
+  │
+  ├─> [Opción 1] Calibrar área de captura:
+  │    │
+  │    ├─> Usuario posiciona mouse en esquina SUPERIOR IZQUIERDA
+  │    ├─> Guardar coordenadas (x1, y1)
+  │    ├─> Usuario posiciona mouse en esquina INFERIOR DERECHA
+  │    ├─> Guardar coordenadas (x2, y2)
+  │    ├─> Capturar screenshot de prueba
+  │    ├─> Ejecutar OCR sobre screenshot
+  │    ├─> Mostrar texto capturado para validación
+  │    └─> Guardar imagen: TBCalibration_Screenshot.png
+  │
+  └─> [Opción 2] Calibrar botón OPEN:
+       │
+       ├─> Usuario posiciona mouse sobre botón "Open"
+       ├─> Guardar coordenadas (mx, my)
+       ├─> Ejecutar click de prueba (opcional)
+       └─> Confirmar coordenadas.
+Resultado: Usuario debe copiar las coordenadas a config.cfg manualmente.
+
+== MODO 2: CAPTURE (--capture) ===
+Propósito: Capturar informacion de cofres de la pantalla del juego usando OCR + clicks automatizados
+
+CAPTURE MODE - Inicio
+  │
+  ├─> Crear instancias de validadores:
+  │    ├─> TBPlayer (validar nombres de jugadores)
+  │    ├─> TBChest (validar nombres de cofres)
+  │    ├─> TBSource (validar fuentes: Crypt, Bank, etc.)
+  │    ├─> TBFixOCR (correcciones conocidas de OCR)
+  │    └─> TBTime (parsear "Time left")
+  │
+  ├─> Abrir archivos de salida:
+  │    ├─> TB_Capture_Clean_CLAN_TIMESTAMP.txt (datos limpios)
+  │    ├─> TB_Capture_RAW_CLAN_TIMESTAMP.txt (texto OCR crudo)
+  │    ├─> captured-datas.txt (acumulativo)
+  │    └─> total-datas.txt (acumulativo total)
+  │
+  ├─> Preguntar al usuario: "¿Cuántos cofres capturar?"
+  │    └─> Usuario ingresa número (ej: 20)
+  │
+  └─> BUCLE de captura (hasta completar N cofres):
+       │
+       ├─> 1. CAPTURAR PANTALLA
+       │    │
+       │    ├─> ImageGrab.grab(x1, y1, x2, y2)
+       │    ├─> Convertir a escala de grises
+       │    └─> Ejecutar Tesseract OCR
+       │
+       ├─> 2. VALIDAR Y PARSEAR TEXTO
+       │    │
+       │    ├─> Dividir texto en líneas
+       │    ├─> Guardar texto RAW en archivo
+       │    │
+       │    ├─> INTENTAR PARSEO CON REGEX:
+       │    │    │
+       │    │    └─> Buscar patrón:
+       │    │         "ChestName\nFrom: Player\nSource: Location\nTime left: X h Y m"
+       │    │
+       │    ├─> SI FALLA REGEX → MÉTODO FALLBACK (línea por línea):
+       │    │    │
+       │    │    ├─> Detectar líneas multilinea mal formateadas
+       │    │    ├─> Combinar texto: buscar "From" y "Source"
+       │    │    ├─> Reconstruir formato esperado
+       │    │    │
+       │    │    └─> Procesar en grupos de 4 líneas:
+       │    │         │
+       │    │         ├─> Línea 1: Nombre del cofre
+       │    │         │    └─> chest_def.validate(line)
+       │    │         │
+       │    │         ├─> Línea 2: "From: PlayerName"
+       │    │         │    ├─> Extraer nombre del jugador
+       │    │         │    ├─> player_def.validate(player)
+       │    │         │    │    ├─> ¿Existe en players.csv?
+       │    │         │    │    ├─> ¿Fuzzy match? (similitud > 75%)
+       │    │         │    │    └─> ¿Es alias conocido?
+       │    │         │    └─> Si no existe: preguntar al usuario
+       │    │         │
+       │    │         ├─> Línea 3: "Source: Location"
+       │    │         │    └─> source_def.validate(source)
+       │    │         │         ├─> Corregir errores OCR comunes
+       │    │         │         └─> Validar formato
+       │    │         │
+       │    │         └─> Línea 4: "Time left: X h Y m"
+       │    │              └─> time_parser.parse_time_left(line)
+       │    │                   ├─> Buscar patrón: \d+ h \d+ m
+       │    │                   ├─> SI hora >= 80 y hora <= 89:
+       │    │                   │    └─> hora = hora - 80 (corrección icono reloj)
+       │    │                   ├─> Validar: 0 <= hora <= 19
+       │    │                   └─> Validar: 0 <= minutos <= 59
+       │    │
+       │    └─> Almacenar en self.records[]:
+       │         [chest, player, source, time_left]
+       │
+       ├─> 3. GUARDAR REGISTROS
+       │    │
+       │    └─> Para cada registro válido:
+       │         ├─> Escribir en TB_Capture_Clean (working)
+       │         ├─> Escribir en captured-datas.txt (acumulativo)
+       │         └─> Escribir en total-datas.txt (acumulativo)
+       │
+       ├─> 4. EJECUTAR CLICKS AUTOMÁTICOS
+       │    │
+       │    └─> Para cada cofre capturado:
+       │         ├─> pyautogui.click(mx, my)
+       │         ├─> Esperar clickWait milisegundos
+       │         └─> Incrementar contador de clicks
+       │
+       └─> ¿Se completaron N cofres? → FIN BUCLE
+Resultado:
+Archivos TXT con registros limpios en /working/
+Datos acumulados en /data/captured-datas.txt
+Cofres abiertos automáticamente en el juego
+
+
+=== MODO 3: PROCESS (--process) ===
+Propósito: Procesar datos capturados, calcular puntuaciones, generar resúmenes
+PROCESS MODE - Inicio
+  │
+  ├─> Determinar fecha de procesamiento:
+  │    ├─> --date YYYY-MM-DD (específica)
+  │    ├─> --start_date / --end_date (rango)
+  │    └─> Por defecto: fecha actual
+  │
+  ├─> Cargar configuración de puntuaciones (scores-xxx.csv)
+  │
+  └─> Ejecutar sub-procesos según argumentos:
+       │
+       ├─> [--eod] END OF DAY PROCESSING
+       │    │
+       │    ├─> 1. CORRECCIONES PRE-PROCESAMIENTO
+       │    │    │
+       │    │    ├─> Detectar cofres épicos (Jack Reaper Chest + Pumpkin)
+       │    │    │    └─> Renombrar "Pumpkin" → "Epic Jack Reaper Chest"
+       │    │    │
+       │    │    ├─> Aplicar correcciones de fixwords.csv:
+       │    │    │    └─> Buscar/reemplazar frases mal escritas por OCR
+       │    │    │
+       │    │    └─> Preguntar: "¿Olympus/Ragnarok activo?"
+       │    │         └─> Si NO: renombrar cofres de evento a "Bad Hermes/Jormungandr"
+       │    │
+       │    ├─> 2. PROCESAR ARCHIVO DE ENTRADA
+       │    │    │
+       │    │    └─> Leer captured-datas.txt línea por línea (grupos de 4):
+       │    │         │
+       │    │         ├─> Línea 1: Chest
+       │    │         ├─> Línea 2: From: Player
+       │    │         ├─> Línea 3: Source: Location
+       │    │         ├─> Línea 4: Time left: X h Y m
+       │    │         │
+       │    │         ├─> Calcular puntuación:
+       │    │         │    │
+       │    │         │    └─> score_def.calculate(source, chest, player)
+       │    │         │         ├─> Buscar source en scores-xxx.csv
+       │    │         │         ├─> Casos especiales:
+       │    │         │         │    ├─> "Cursed Citadel Chest" → extraer nivel
+       │    │         │         │    └─> "Bank" → intercambiar chest/source
+       │    │         │         └─> Retornar puntuación
+       │    │         │
+       │    │         └─> Escribir a archivo FINAL:
+       │    │              YYYY-MM-DD_TB_Chests_CLAN_FINAL.txt
+       │    │              Formato CSV: DATE,PLAYER,SOURCE,CHEST,SCORE,CLAN,TIME_LEFT
+       │    │
+       │    └─> Archivar archivo procesado:
+       │         └─> Copiar captured-datas.txt → /archive/TB_Chests_CLAN_DATE_DATA.archive
+       │
+       ├─> [--summary] GENERAR RESUMEN DE JUGADORES
+       │    │
+       │    ├─> Leer todos los archivos FINAL en /data/
+       │    │
+       │    ├─> Acumular por jugador:
+       │    │    ├─> Total de puntos
+       │    │    └─> Total de cofres
+       │    │
+       │    ├─> Ordenar por puntuación (mayor a menor)
+       │    │
+       │    ├─> Escribir resumen:
+       │    │    └─> YYYY-MM-DD_TB_PlayerSummary_CLAN_FINAL.txt
+       │    │         Formato: PLAYER,SCORE,CHEST
+       │    │
+       │    └─> Crear copia con timestamp de captured-datas.txt
+       │
+       └─> [--citadels] GENERAR RESUMEN DE CIUDADELAS
+            │
+            ├─> Filtrar solo registros de Citadels
+            │
+            ├─> Clasificar por nivel y tipo:
+            │    ├─> Elven Citadel: 10, 15, 20, 25, 30
+            │    └─> Cursed Citadel: 20, 25
+            │
+            ├─> Contar por jugador y nivel
+            │
+            └─> Escribir resumen:
+                 └─> TB_CitadelSummary_CLAN_FINAL.txt
+                      Formato: PLAYER,ELVEN_10,ELVEN_15,...,TOTAL
+Resultado:
+
+Archivos FINAL procesados con puntuaciones
+Resúmenes por jugador
+Resúmenes de ciudadelas
+Archivos archivados
+
+
+===== CLASES PRINCIPALES =====
+1. TBConfig
+- Carga config.cfg
+- Parsea parámetros: rutas, coordenadas, clanes
+- Valida configuración
+2. TBScreen
+- get_screenshot(x1,y1,x2,y2) → captura región
+- get_grayscale(img) → convierte a B&N
+- ocr_core(img) → ejecuta Tesseract OCR
+- ocr_time_specialized - OCR SUPER especializado solo para time left con preprocesamiento agresivo
+3. TBTime (NUEVA)
+- extrae "X h Y m"
+- Corrección automática: 80-89h → 0-9h
+- Validación de rangos: 0-19h, 0-59m
+4. TBPlayer
+- Carga players.csv
+- validate(player, line):
+  ├─> Fuzzy matching (similitud > 75%)
+  ├─> Búsqueda en alias
+  └─> Interacción con usuario si desconocido
+- save() → guarda nuevos jugadores
+5. TBChest
+- Carga data_quality.csv
+- validate(chest):
+  ├─> Corrige errores OCR comunes
+  ├─> Mapea nombres parciales a nombres completos
+  └─> Normaliza capitalización
+6. TBSource
+- validate(source, line):
+  ├─> Detecta formato "Source: Location"
+  ├─> Completa palabras truncadas (Cr → Crypt)
+  └─> Normaliza nombres
+7. TBScore
+- Carga scores-xxx.csv
+- calculate(source, chest, player, line):
+  ├─> Mapea source → puntuación
+  ├─> Maneja casos especiales (Citadels, Bank)
+  └─> Retorna score
+8. TBFixOCR
+- Carga fix_ocr.csv
+- fix(line1, line2) → corrige errores de 2 líneas
+9. TBCalibration
+- run(config) → modo calibración interactivo
+10. TBCapture
+- run() → bucle principal de captura
+- validate_capture(capture, count) → parsea OCR
+- save_records() → guarda registros
+11. TBProcess
+- run() → orquesta procesamiento
+- process_file() → procesa archivo individual
+- run_chest_summary() → genera resumen de jugadores
+- run_citadel_summary() → genera resumen de ciudadelas
+
+===== FORMATO DE DATOS =====
+Captura (4 líneas por registro):
+Gnome Workshop Chest
+From : Yozahm9
+Source : Level 10 Crypt
+Time left : 5h 30m
+
+
+===== CORRECCIONES OCR AUTOMÁTICAS =====
+Time Left:
+Input OCR:  "Time left: 85 h 30 m"  (icono reloj → "8")
+Corrección: "5h 30m"                 (85 - 80 = 5)
+Chest Names:
+"lven Citadel" → "Elven Citadel"
+"Ches" → "Chest"
+"Cryp" → "Crypt"
+Player Names:
+Fuzzy match: "Y0zahm9" → "Yozahm9" (similitud > 75%)
+Sources:
+"Ba" → "Bank"
+"Cryp" → "Crypt"
+"Citade" → "Citadel"
+
+===== FLUJO DE ARCHIVOS =====
+CAPTURA:
+  ImageGrab → OCR → Validación → captured-datas.txt
+                                ↓
+                           working/*.txt (timestamped)
+
+PROCESAMIENTO:
+  captured-datas.txt → Correcciones → Puntuaciones → FINAL.txt
+                                                        ↓
+                                                   archive/*.archive
+
+RESÚMENES:
+  FINAL.txt → Agregación → PlayerSummary.txt
+                        → CitadelSummary.txt

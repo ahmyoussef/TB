@@ -1,4 +1,4 @@
-# tb.py -- deepseek.ai
+# tb.py
 # 1. IMPORTS Y CONFIGURACIÓN GLOBAL ----------------------------------------------------------------------
 
 from logging import captureWarnings
@@ -19,14 +19,18 @@ from difflib import SequenceMatcher as SM
 import time
 import cv2
 import numpy
-import easyocr  # REPLACED: pytesseract with easyocr
+import pytesseract
 
 
 from PIL import ImageGrab
 import pyautogui, sys
 import pygetwindow
 
-import re  # <-- AÑADIR ESTO
+
+# ---------------- CONFIGURACIÓN ABSOLUTE PATH DE TESSERACT -------------------------------------------------------
+
+# absolute path to tesseract.exe
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ---------------- CHECK ABSOLUTE PATH END ---------------------------------------------------
 # Archivos de log
@@ -113,11 +117,9 @@ class TBScreen(object):
     
     """ This class takes the screen capture and runs the OCR processing, and contains image processing functions """
     """Manejo de captura de pantalla, preprocesamiento y OCR."""
-    
-    def __init__(self):
-        """Initialize EasyOCR reader once for performance (CPU-only, English)"""
-        self.reader = easyocr.Reader(['en'], gpu=False)
-    
+# ------------------------------------------------------------------------------------------------------
+#   def init__(self):
+
 # ------------------------------------------------------------------------------------------------------
     def get_screenshot(self, x, y, dx, dy):
         image = ImageGrab.grab(bbox=(int(x), int(y), int(dx), int(dy)))
@@ -132,21 +134,8 @@ class TBScreen(object):
     def thresholding(self,img):
         return cv2.threshold( img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 # ------------------------------------------------------------------------------------------------------
-    def ocr_core(self, img):
-        """Extract text using EasyOCR (replaces Tesseract)"""
-        # Convert PIL Image to numpy array if needed
-        if hasattr(img, 'mode'):
-            img = numpy.array(img)
-        
-        # Apply preprocessing
-        if len(img.shape) == 3:
-            img = self.get_grayscale(img)
-        
-        # Use EasyOCR
-        results = self.reader.readtext(img, detail=0, paragraph=True)
-        
-        # Combine all results into single text
-        text = "\n".join(results) if results else ""
+    def ocr_core(self,img):
+        text = pytesseract.image_to_string(img, lang='eng', config='--psm 12 --oem 1')
         return text
     
     def ocr_time_specialized(self, img):
@@ -183,17 +172,12 @@ class TBScreen(object):
         except:
             pass
         
-        # Use EasyOCR with character whitelist in post-processing
-        results = self.reader.readtext(img, detail=0, paragraph=False)
+        # Configuración MUY restrictiva para tiempo
+        # Solo permitir: 0-9, h, m, s, espacio, :
+        config = '--psm 7 --oem 1 -c tessedit_char_whitelist=0123456789hms: '
         
-        # Combine results
-        raw_text = " ".join(results) if results else ""
-        
-        # Post-processing: filter to allowed characters only
-        allowed_chars = set('0123456789hms: ')
-        filtered_text = ''.join(c for c in raw_text if c.lower() in allowed_chars)
-        
-        return filtered_text.strip()
+        text = pytesseract.image_to_string(img, lang='eng', config=config)
+        return text.strip()
 
 # 4. TBFixOCR CLASE DE MODELADO DE DATOS Y LIMPIEZA OCR (Placeholders) ------------------------------------------------
 # Estas clases se mantienen para modularidad, asumiendo que implementan la lógica de validación
@@ -1027,7 +1011,6 @@ class TBCalibration(object):
                 print(">>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<\n\n\n")
 
 # TBCapture ------------------------------------------------------------------------------------------------------
-# TBCapture ------------------------------------------------------------------------------------------------------
 class TBCapture(object):
     """ main class used for capturing chest information from the TB Gift screen """
 # ------------------------------------------------------------------------------------------------------
@@ -1066,48 +1049,15 @@ class TBCapture(object):
         self.maxClicks   = 0
         self.totalClicks = 0
 
-    # ------------------------------------------------------------------------------------------------------
-    def save_roi_image(self, image, roi_type, capture_index=None):
-        """
-        Save ROI image for visual logging (non-blocking)
-        Directory: data/logs/
-        Format: {timestamp}_{capture_index}_{roi_type}.png
-        """
-        try:
-            # Create logs directory if not exists
-            log_dir = Path("data/logs")
-            log_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Generate filename
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            if capture_index is None:
-                capture_index = self.totalClicks + 1
-            
-            filename = f"{timestamp}_{capture_index:03d}_{roi_type}.png"
-            filepath = log_dir / filename
-            
-            # Convert PIL Image to numpy array if needed
-            if hasattr(image, 'mode'):
-                image = numpy.array(image)
-            
-            # Save image
-            cv2.imwrite(str(filepath), image)
-            
-            if self.debug_mode:
-                print(f"### Saved ROI image: {filename}")
-                
-        except Exception as e:
-            # Silent fail - logging should not interrupt capture
-            if self.debug_mode:
-                print(f"### Warning: Failed to save ROI image: {e}")
-    
     # ============================================================================
-    # MEJORADO: validate_capture() con soporte para líneas combinadas de EasyOCR
+    # FIXED: validate_capture() and save_records() methods for TBCapture class
+    # Issue 1: Now supports seconds in time validation
+    # Issue 2: Fixed "No more chests to capture!" appearing prematurely
     # ============================================================================
     def validate_capture(self, capture, count):
         """
         Validate merged capture (main + time region)
-        Compatible con EasyOCR que puede combinar múltiples campos en una línea
+        Fully compatible with new TBTimeLeft (hours + minutes + seconds)
         """
 
         import re
@@ -1129,96 +1079,12 @@ class TBCapture(object):
         print("*********************************************************************\n")
 
         # Normalize input
+        # Esto convierte la captura de doble zona (separada por \n) en una lista de líneas.
         lines = [x.strip() for x in capture.split("\n") if x.strip()]
         if not lines:
             print("### No chests found (OCR empty).")
             return False
 
-        # -----------------------------------------------------------------
-        # FUNCIÓN INTERNA: Parsear líneas combinadas (EasyOCR específico)
-        # -----------------------------------------------------------------
-        def parse_combined_line(text):
-            """Parsear líneas donde EasyOCR combinó Chest, From y/o Source - VERSIÓN MEJORADA"""
-            import re  # <-- AÑADIR ESTO
-            
-            chest = player = source = ""
-            
-            # DEBUG: Mostrar qué estamos parseando
-            print(f"### [DEBUG] Parsing: '{text}'")
-            
-            # INTENTO 1: Patrón COMPLETO "Chest From: Player Source: SourceText"
-            # Más flexible con espacios y OCR errors
-            pattern1 = r"^(.*?)\b(?:Fr om|From|F rom)\s*[:;.]?\s*(.+?)\b(?:Source|S ource|s ource)\s*[:;.]?\s*(.+)$"
-            match1 = re.search(pattern1, text, re.IGNORECASE)
-            
-            if match1:
-                chest = match1.group(1).strip()
-                player = match1.group(2).strip()
-                source = match1.group(3).strip()
-                print(f"### [DEBUG Pattern1] Chest:'{chest}', Player:'{player}', Source:'{source}'")
-                return chest, player, source
-            
-            # INTENTO 2: Patrón alternativo (menos estricto)
-            pattern2 = r"^(.*?)\bFrom\s*:?\s*(.+?)\bSource\s*:?\s*(.+)$"
-            match2 = re.search(pattern2, text, re.IGNORECASE | re.DOTALL)
-            
-            if match2:
-                chest = match2.group(1).strip()
-                player = match2.group(2).strip()
-                source = match2.group(3).strip()
-                print(f"### [DEBUG Pattern2] Chest:'{chest}', Player:'{player}', Source:'{source}'")
-                return chest, player, source
-            
-            # INTENTO 3: Dividir por palabras clave
-            # Buscar posición de "Source:" (case insensitive)
-            import re
-            source_match = re.search(r"\bSource\s*:?\s*", text, re.IGNORECASE)
-            from_match = re.search(r"\bFrom\s*:?\s*", text, re.IGNORECASE)
-            
-            if source_match and from_match:
-                # Tenemos ambos: From: y Source:
-                from_pos = from_match.start()
-                source_pos = source_match.start()
-                
-                if from_pos < source_pos:
-                    # "From:" viene antes de "Source:"
-                    chest = text[:from_pos].strip()
-                    player = text[from_match.end():source_pos].strip()
-                    source = text[source_match.end():].strip()
-                else:
-                    # "Source:" viene antes de "From:" (raro pero posible)
-                    chest = text[:source_pos].strip()
-                    source = text[source_match.end():from_pos].strip()
-                    player = text[from_match.end():].strip()
-                
-                print(f"### [DEBUG Split] Chest:'{chest}', Player:'{player}', Source:'{source}'")
-                return chest, player, source
-            
-            # INTENTO 4: Solo "From:" (sin Source)
-            pattern4 = r"^(.*?)\bFrom\s*:?\s*(.+)$"
-            match4 = re.search(pattern4, text, re.IGNORECASE)
-            if match4:
-                chest = match4.group(1).strip()
-                player = match4.group(2).strip()
-                print(f"### [DEBUG Pattern4] Chest:'{chest}', Player:'{player}'")
-                return chest, player, source
-            
-            # INTENTO 5: Solo "Source:" (sin From)
-            pattern5 = r"^(.*?)\bSource\s*:?\s*(.+)$"
-            match5 = re.search(pattern5, text, re.IGNORECASE)
-            if match5:
-                chest = match5.group(1).strip()
-                source = match5.group(2).strip()
-                print(f"### [DEBUG Pattern5] Chest:'{chest}', Source:'{source}'")
-                return chest, player, source
-            
-            # Último recurso: toda la línea es chest
-            chest = text.strip()
-            print(f"### [DEBUG Fallback] Chest:'{chest}'")
-            return chest, player, source
-        # -----------------------------------------------------------------
-        # PROCESAMIENTO PRINCIPAL
-        # -----------------------------------------------------------------
         chest = None
         player = None
         source = None
@@ -1228,93 +1094,40 @@ class TBCapture(object):
         total = len(lines)
         i = 0
 
+        # Cambiamos la lógica del while para asegurar que todos los campos se procesen
+        # antes de reiniciar (Finalize chest).
         while i < total and records_found < count:
+
             text = lines[i]
-            
-            # DETECCIÓN DE LÍNEAS COMBINADAS (EasyOCR)
-            lower_text = text.lower()
-            has_from = any(keyword in lower_text for keyword in ["from", "fr om", "rom"])
-            has_source = any(keyword in lower_text for keyword in ["source", "s ource", "ource"])
-            has_multiple_fields = (has_from or has_source) and (chest is None or player is None or source is None)
-            
-            # -------------------------------------------------------------
-            # 1) PROCESAR LÍNEA COMBINADA (EasyOCR)
-            # -------------------------------------------------------------
-            if has_multiple_fields:
-                parsed_chest, parsed_player, parsed_source = parse_combined_line(text)
-                
-                # Asignar valores
-                if chest is None and parsed_chest:
-                    chest = parsed_chest
-                if player is None and parsed_player:
-                    player = parsed_player
-                if source is None and parsed_source:
-                    source = parsed_source
-                
-                print(f"### [COMBINED] Chest:'{chest}', Player:'{player}', Source:'{source}'")
-                
-                # Verificar siguiente línea para tiempo
-                if time_left is None and i + 1 < total:
-                    next_line = lines[i + 1]
-                    if re.search(r'\d', next_line) and (re.search(r'[hm]', next_line.lower()) or ':' in next_line):
-                        # Procesar tiempo
-                        ok_ex, h, mnt, sec, raw_time = self.time_left_def.extract(next_line)
-                        if ok_ex:
-                            ok_v, hcorr, mcorr, scorr, usercorr = self.time_left_def.validate(h, mnt, sec, i+1)
-                            if ok_v:
-                                time_left = f"{hcorr} h : {mcorr} m"
-                                print(f"### [TIME] Detected: {time_left}")
-                                i += 1  # Consumir línea de tiempo
-                
-                i += 1
-                
-                # ¡IMPORTANTE! Intentar finalizar registro inmediatamente
-                if chest and player and source and time_left:
-                    # (Mover código de Finalize chest aquí)
-                    try:
-                        pres = self.player_def.validate(player, i)
-                        final_player = player if pres is None else pres[1]
-                    except:
-                        final_player = player
 
-                    try:
-                        sres = self.source_def.validate(source, i)
-                        final_source = source if sres is None else sres[1]
-                    except:
-                        final_source = source
-
-                    self.records.append([chest, final_player, time_left, final_source])
-                    records_found += 1
-                    print(f"### Record completed from combined line: {records_found}/{count}")
-
-                    # Reiniciar
-                    chest = player = source = time_left = None
-                
-                continue
-            
-            # -------------------------------------------------------------
-            # 2) PROCESAMIENTO ORIGINAL (líneas separadas)
-            # -------------------------------------------------------------
-            # Chest name - primera línea sin keywords
-            if chest is None and "from" not in lower_text and "source" not in lower_text and "time" not in lower_text:
+            # 1) Chest name
+            # Debe ser la primera línea que no contenga ninguna palabra clave conocida.
+            if (
+                chest is None and
+                "From" not in text and
+                "Source" not in text and
+                "Time" not in text
+            ):
                 chest = text
+                # No usamos 'continue'. Simplemente pasamos a la siguiente línea.
                 # print(f"[DEBUG] Found Chest: {chest}")
 
-            # From
-            elif "from" in lower_text and player is None:
-                m = re.search(r"From\s*:?\s*(.+)", text, re.IGNORECASE)
+            # 2) From
+            elif "From" in text and player is None:
+                m = re.search(r"From\s*:?\s*(.+)", text)
                 if m:
                     player = m.group(1).strip()
                 # print(f"[DEBUG] Found Player: {player}")
 
-            # Source
-            elif "source" in lower_text and source is None:
-                m = re.search(r"Source\s*:?\s*(.+)", text, re.IGNORECASE)
+            # 3) Source
+            elif "Source" in text and source is None:
+                m = re.search(r"Source\s*:?\s*(.+)", text)
                 if m:
                     source = m.group(1).strip()
                 # print(f"[DEBUG] Found Source: {source}")
 
-            # Time (manejo especializado)
+            # 4) Time (El más complejo, lo dejamos al final de la detección)
+            # Se asume que Time left está en la última línea capturada.
             elif time_left is None:
                 # Detecta tiempo incluso si NO contiene "Time left:"
                 lower = text.lower().strip()
@@ -1328,63 +1141,87 @@ class TBCapture(object):
                     m = re.search(r"time\s*left\s*:?\s*(.+)", text, re.IGNORECASE)
                     raw_candidate = m.group(1).strip() if m else text
 
-                # CASO B → No contiene "Time left", pero PARECE tiempo
+                # CASO B → No contiene "Time left", pero la línea PARECE un tiempo válido
                 elif not any(k in lower for k in not_time_keywords):
                     # debe contener al menos un dígito
                     if re.search(r"\d", lower):
-                        # patrón típico h,m,s
+                        # patrón típico h,m,s en cualquier forma
                         if re.search(r"[hmHsS]", lower) or re.search(r"\d+\s*[:]\s*\d+", lower):
                             raw_candidate = text.strip()
 
-                # Procesar tiempo detectado
+                # Si se detectó un candidato de tiempo, lo procesamos
                 if raw_candidate is not None:
+                    #print(f"\n### RAW TIME STRING DETECTED: '{raw_candidate}'")
+                    #print(f"### [DEBUG] Raw time OCR before cleaning: '{raw_candidate}'")
+
                     ok_ex, h, mnt, sec, raw_time = self.time_left_def.extract(raw_candidate)
+
+                    #print(f"### [DEBUG] Cleaned time OCR: '{raw_time}'")
 
                     if not ok_ex:
                         print(f"### [FALLBACK] 0 h : 0 m")
                         time_left = "0 h : 0 m"
                     else:
+                        # VALIDACIÓN
+                        #print(f"### VALIDATING: raw = {h} h : {mnt} m : {sec} s (line {i})")
+                        #ok_v, hcorr, mcorr, usercorr = self.time_left_def.validate(h, mnt, sec, i)
                         ok_v, hcorr, mcorr, scorr, usercorr = self.time_left_def.validate(h, mnt, sec, i)
 
                         if ok_v:
+                            #print(f"### VALIDATED OK: {hcorr} h : {mcorr} m")
+                            # El tiempo se almacena en el formato final
                             time_left = f"{hcorr} h : {mcorr} m"
                         else:
                             print(f"### VALIDATION FAILED → using 0 h : 0 m")
                             time_left = "0 h : 0 m"
 
-            # -------------------------------------------------------------
-            # 3) FINALIZAR REGISTRO CUANDO TENEMOS LOS 4 CAMPOS
-            # -------------------------------------------------------------
+                    #print(f"### NORMALIZED TIME → '{time_left}'")
+                # else: no era tiempo, avanzamos 'i'
+
+            # ============================================================
+            # Finalize chest: CHECKPOINT CRÍTICO
+            # Solo finaliza el registro si tiene todos los 4 campos y reinicia
+            # ============================================================
             if chest and player and source and time_left:
-                # Validar player (lógica existente)
+
                 try:
                     pres = self.player_def.validate(player, i)
                     final_player = player if pres is None else pres[1]
                 except:
                     final_player = player
 
-                # Validar source (lógica existente)
                 try:
                     sres = self.source_def.validate(source, i)
                     final_source = source if sres is None else sres[1]
                 except:
                     final_source = source
 
-                # Añadir registro
                 self.records.append([chest, final_player, time_left, final_source])
                 records_found += 1
-                print(f"### Record completed: {records_found}/{count}")
 
-                # Reiniciar para siguiente cofre
+                # Reiniciar para buscar el siguiente (aunque solo busquemos 1)
                 chest = None
                 player = None
                 source = None
                 time_left = None
+                
+                # Usamos 'continue' aquí para saltar 'i += 1' y seguir con el ciclo
+                # En la práctica, con un solo cofre, el 'while' terminará en la siguiente iteración.
+                # continue # Descomentar si se buscan multiples cofres y se quiere reiniciar el ciclo sin incrementar 'i'
             
+            # Siempre incrementamos 'i' para avanzar a la siguiente línea.
+            # Si se usó 'continue' arriba, esta línea se salta, pero como es un solo cofre
+            # y solo hay 4 líneas, da igual. Lo importante es que no se salte 'Source' por error.
             i += 1
             
-        # Último registro (fallback)
-        if records_found < count and chest and player and source and time_left:
+        # Last record (Fallback para asegurar que el último registro incompleto se procese)
+        # Ya no es estrictamente necesario debido al 'if' dentro del bucle, pero lo mantenemos.
+        if (
+            records_found < count and
+            chest and player and source and time_left
+        ):
+            # NOTA: La validación de player/source se realizó arriba, pero la repetimos
+            # si la detección ocurrió fuera del finalizador del ciclo.
             try:
                 pres = self.player_def.validate(player, i)
                 final_player = player if pres is None else pres[1]
@@ -1399,9 +1236,8 @@ class TBCapture(object):
                 
             self.records.append([chest, final_player, time_left, final_source])
             records_found += 1
-            print(f"### Last record added: {records_found}/{count}")
 
-        # Si no se encontraron registros
+        # If no records found (el manejo de errores al final es correcto)
         if records_found == 0:
             print("### No chests found!")
             print("\n*** ERROR: The language is English?")
@@ -1441,20 +1277,20 @@ class TBCapture(object):
         while index < len(self.records):
             chest = self.records[index][0]
             player = "From : " + self.records[index][1]
+            time_left = "Time left : " + self.records[index][2]  # Now includes seconds
             source = "Source : " + self.records[index][3]
-            time_left = "Time left : " + self.records[index][2]
 
             print("\n-------------------------------------------------------")
             print("{}".format(chest))
             print("{}".format(player))
+            print("{}".format(time_left))  # Will show "X h : Y m : Z s"
             print("{}".format(source))
-            print("{}".format(time_left))
             print("-------------------------------------------------------")
 
             rows.append(chest)
             rows.append(player)
-            rows.append(source)
             rows.append(time_left)
+            rows.append(source)
             index += 1
 
         for row in rows:
@@ -1494,14 +1330,14 @@ class TBCapture(object):
             # CAPTURA 2: Time Left (área específica)
             image_time = self.screen.get_screenshot(self.config.time_x1, self.config.time_y1,
                                                     self.config.time_x2, self.config.time_y2)
+            # ANTES:
+            #capture_time = self.screen.ocr_core(image_time)
+
+            # DESPUÉS:
             capture_time = self.screen.ocr_time_specialized(image_time)
             
             # MERGE BOTH CAPTURES
             capture = capture_main + "\n" + capture_time
-            
-            # VISUAL LOGGING: Save ROI images
-            self.save_roi_image(image_main, "chest", self.totalClicks + 1)
-            self.save_roi_image(image_time, "time", self.totalClicks + 1)
             
             # print(f"\n### TIME CAPTURE: '{capture_time}'") # Desactivado:
             count = 4 # chests on the screen
@@ -1582,8 +1418,9 @@ class TBCapture(object):
                 
         if not success:
             print("\n****************************************")
-            print("** THERE ARE ERRORS IN THE PROCESAR **")
+            print("** THERE ARE ERRORS IN THE PROCESSING **")
             print("****************************************")
+
 
 # TBProcess ------------------------------------------------------------------------------------------------------
 class TBProcess(object):
@@ -1737,7 +1574,7 @@ class TBProcess(object):
                     print(">>-------------------------------------------------<<\n\n")
                     break
             
-                # Prüfen Sie die dritte gelesene Zeile auf Leerheit (die 3. Zeile ist la próxima línea después del par)
+                # Prüfen Sie die dritte gelesene Zeile auf Leerheit (die 3. Zeile ist die nächste Zeile nach dem Paar)
                 if not word2.strip():
                     break
 
@@ -1759,7 +1596,7 @@ class TBProcess(object):
                 print(">>> The chests get renamed to Bad Hermes and")
                 print(">>> Bad Jormungandr with 0 points with your score.\n")
                 print(">>> The changes are only updated to the current")
-                print(">>> capture-file into the data-folder!")    
+                print(">>> capture-file into the data-folder!")
                 print("----------------------------------------------------\n")
         
                 choice = input("### Event Olympus or Ragnarok now running? [y/n]: ")

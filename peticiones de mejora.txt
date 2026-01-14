@@ -1,0 +1,688 @@
+C:\Chest-Counter\
+   ├── bin\
+   │     tb_tracker.py              # PROGRAMA PRINCIPAL/backend
+   │     tb-c1-en.ps1               # script para lanzar tb.py para el clan 1 │
+   │     tb-c1-en.ps2               # script para lanzar tb.py para el clan 2 │
+   │     tb-c1-en.ps3               # script para lanzar tb.py para el clan 3 │
+   │     TBDatabase.py              # logica de la bd
+   │     TBDatabaseIntegration.py   # sincronizacion y integracion bd y csv
+   │     tb_reports_gui.py          # Lanzador de la GUI   
+   ├── config\
+   │      players.csv
+   │      players_power.csv
+   │      scores-hlo.csv
+   │
+   ├── data\
+          db\
+             tb_chests_[name clan].db
+   ├── reports\
+             .txt
+ss
+
+
+C:\TBChest-Tracker\
+├── bin\
+│   ├── main.py                # Programa principal (flujo / entrypoint)
+│   ├── tb-launcher.ps1        # Script launcher PowerShell
+│   ├── tb_gui_main.py         # GUI to manage app and show results/statistics
+│   ├── tb_web_app.py          # web page to show resutls/statistics
+│   ├── ChestDataProcessor\    # Modularizacion del tb.py para que haga todas las funciones
+│   │     ├── TB_OCR_engine.py # AQUI INCLUIR TODO LO RELACIOANDO CON EL OCR: GESTION DE PARAMETROS DE CALIBRACION DE LA PANTALLA, CAPTURA/FOTO DE LAS REGIONES EN DE PANTALLA (INCLUIR LA LOGICA QUE EN TBCONFIG, TBSCREEN, TBFIZXOCR)
+│   │     ├── TB_validation.py #PARSEO DE TEXTO DETECTADO POR EL OCR (TBCHEST, TBSOURCE, TBPLAYER, TBTIMELEFT)
+│   │     ├── TB_capture.py    # Captura limpia de los datos del cofres para guardarlos directamente en la base de datos (TBCAPTURE), a traves del programa TB_database_manager.py 
+│   │     ├── TB_database_manager.py # = TBDatabase.py, TODO lo relacionado con la lógica SQL o BD, trasladar aqui el gaurdado de las sessiones de captura (Gestor de la conexión a la BD; gestion esquema SQL de la BD; creacion de la bd por primera vez y creacion de las tablas; Funciones de acceso a datos (CRUD) ...)
+│   │     ├── TB_reports.py   # manejo de la Puntuación (TBScore mejorado) y generacion de informes desde sql
+│
+├── config\
+│     config.cfg
+│     players-[name clan].csv
+│     players_power.csv
+│     chest_scores.csv # antiguo scores-hlo.csv
+├── data\
+│   ├── database\    
+│   │     ├── total_battle_chests.db   # UNICA base de datos de los registros de los cofres
+│   ├── reports\   
+│   │     ├── .txt/xls  # informes generados se guardan aqui en forma de ficheros txt y excel.
+├── logs\
+│   ├── .log\ #guardado de errores que pueden ocurrir   
+
+
+
+
+-------------------------------
+
+
+Hola Lyra, quiero optimizar un programa hecho anteriormente, para que lea y guarde registros de los cofres que aparcen en la pantalla mientras estoy jugando Total Battle (busca informacion basica de como funciona y en que consiste este juego).
+
+Te pasare el programa a trozos, basicamente lee los 3 lineas que aparecen en mas o menos asi:
+"
+Gnome Workshop Chest
+From: Yozahm9
+Source: Level 10 Crypt
+"
+y lo guarda en ficheros txt, en las carpetas working y archive.
+
+- Yo quiero ademas implementar la captacion del la fecha de cuando se exploro el cofres Para hacerlo habria qeu captar la fecha de caducidad de cofres que aparece a la derecha de la pantalla, y mediante logica calcular cuando se exploro el cofre: los cofres tienen caducidad de 20h, por lo tanto al dia actual (cuando se ejecute el programa, restar las 20h, para calcular el dia y la hora exacta cuando se hizo.)
+
+- Ademas quiero que los datos / registros en vez de guardar en ficheros txt/csv, una vez limpios se guarden en una base de datos (tb_chests_hlo.db, ubicado en la carpeta data\db). En esta base de datos tiene que haber estas tablas: 
+chest_register, players_ocr, clan_members, grup_chests_score (puedes añadir otras tablas tablas necesarias para poder hacer las implementaciones )
+
+la tabla players_ocr (se carga del archivo players.csv en config: Sirve únicamente para normalizar nombres del OCR. Mantiene compatibilidad total con tu sistema actual.):Contendra estos campos:
+id_player
+name_player
+alias1_OCR
+alias2_OCR
+alias3_OCR
+alias4_OCR
+alias5_OCR
+alias6_OCR
+alias7_OCR
+alias8_OCR
+
+la tabla clan_members (general information about clan players). Contiene: id_player,Might,Hero_Level,Guards_Level,Monsters_Level,Specialists_Level, Engineers_Level, Gold_Pass (True o False)
+
+la tabla chest_register tendra estos campos: 
+"
+id_register
+chest
+name_player
+source (estos 3 ultimos campos captados por el programa OCR)
+id_player (añadir por coinicidencia en player_name del archivo players.csv)
+time_exploration: fecha captada de la nueva implemetacion).
+
+Ademas quiero que diseñes un programa modular a aparte dentro del programa original, que corra o interfaz grafica en pyqt6 para ver la puntuacion de los jugadores (fichero: scores-hlo.csv donde esta la puntuacion de cada cofre) y que al 
+la interfaz grafica quiero que tenga varios botones, que ejecutan modulosde putyon separados y que al iniciar o cargar el programa de la interfaz, cargue los datos de la puntuacion (pestaña/boton PUNTUACION POR JUGADOR)
+
+la interfaz/dashboard, quiero que tenga 5 botones/pestanñas en la barte de arriba:
+BOTON 1: Cofres, donde cargue una especie de tabla GLOBAL PUNTUACIÓN DE TODOS LOS JUGADORES, pudiendo aplicar un FILTRO: [ Hoy, por defecto ] [ Últimos 7 días ] [ Últimos 30 días ]: esta tabla tendra esta informacion: 1. Índice (#) 2. Rank general de puntuación 3. Nombre del jugador 4. Progreso (%, con una barra de % aplicado al campo, la representa qué porcentaje del Point Requirement ha cumplido ese jugador: clan_requirements.csv) 5. Total de puntos 6. Total de cofres 7. Puntos por cada tipo de cofre (tantas columnas como tipos existan, la clasificacion de los cofres estara en un archivo de configuracion (config, nominado: grup_chests_score.csv)). -- abajo de la ventana tiene que tener un boton para generar un reporte en forma de excel o pdf de esta tabla segun el filtro aplicado (solo enseñar campos 1-6) 
+Boton 2: cargara LA TABLA DE REGISTROS enseñando esta estructura, o columnas: 1. Chest Name (nombre del cofre) 2. Source (lugar de obtención) 3. Points (puntos según configuración) 4. Collected By (jugador) 5. Collection Time (fecha/hora del exploracion, implementado nuevo) 
+BOTON 4: JUGADORES- de momento no funcional
+Boton 5: Resumen . de momento no funcional 
+
+la Estructura final del proyecto, quiero que sea asi:
+
+..Chest-CounterV0\
+├── bin\
+│   ├── tb.py                      # tu programa principal existente (sin tocar, que modificaremos para implementar lo de captacion de fechas)
+│   ├── tb-c1-en.ps1               # script de ejecución en PowerShell, para lanzar tb.py
+│   ├── main_gui.py          # ESTE sera el launcher del dashboard/interfaz grafica
+│   └── gui_modules\               # <--- aquí van los módulos que ya generamos/definimos para la interfaz grafica
+│
+├── config\
+│   ├── players.csv
+│   ├── info_members.csv
+│   ├── scores-hlo.csv
+│   └── clan_requirements.csv
+│
+├── data\
+│   └── /archive/
+│       ├── TB_Chests_HLO_2025-11-05_DATA.archive (ejemplo de ficheros)
+│       ├── TB_Chests_HLO_2025-11-06_DATA.archive
+│       └── ...
+│   └── /working/
+│       ├── TB_Capture_Clean_HLO_2025-11-05 20.38.57.txt
+│       ├── TB_Capture_RAW_HLO_2025-11-05 20.38.57.txt
+│       ├── TB_Capture_Clean_HLO_2025-11-05 20.44.31.txt
+│       ├── TB_Capture_RAW_HLO_2025-11-05 20.44.31.txt
+│       ├── TB_Capture_Clean_HLO_2025-11-06 03.41.03.txt
+│       └── ...
+│   └── db\
+│       └── tb_chests_hlo.db
+│
+├── requirements.txt
+└── INSTALL.txt
+
+
+-------
++-------------------------------------------------------------------------------------+
+| ICONO  | TÍTULO DEL COFRE "Barbarian Chest"                                         |
+|        |FROM "From: ChrisFrome"                           | TIME LEFT | 19 h : 57 m |
+|        | SOURCE "Source: Level 30 epic Crypt"               | [Botón]|  [Open]      | 
++-------------------------------------------------------------------------------------+
+
+-------------
+Descripción Detallada de la PantallaAspectoDescripción y DisposiciónContenido PrincipalEs una lista desplazable verticalmente (scroll) de Cofres/Regalos de Clan. Cada cofre es un módulo o fila que se repite.Disposición VisualEl contenido principal está dispuesto en una sola columna centrada en la pantalla.CofresAparecen en el cuerpo central de la pantalla, en filas verticales. En la imagen se ven 4 cofres uno debajo del otro.Texto "Time left:"Aparece consistentemente en la columna derecha de cada fila de cofre, justo encima del botón "Open". El valor es típicamente en formato [Número] h : [Número] m (ej. 19 h : 57 m).BotonesSí, hay un botón interactivo llamado "Open" (Abrir) que aparece en la esquina inferior derecha de cada fila de cofre.Elementos por Fila (de izquierda a derecha)1. Icono del cofre y etiqueta "Clan" (extremo izquierdo) > 2. Título del cofre, "From" y "Source" (centro) > 3. "Time left" y Botón "Open" (extremo derecho).Resolución EstimadaBasado en el tamaño de los elementos y la proporción, parece ser una captura de pantalla de Escritorio (PC) con una resolución horizontal ancha, aunque no se puede determinar la resolución exacta. Las coordenadas relativas al área total visible serán esenciales.Textos y Formatos- Título del Cofre (Barbarian Chest): Texto grande, color dorado/marrón. - Origen/Fuente (From: Verleihnix, Source: Level 30 epic Crypt): Texto más pequeño, generalmente blanco o beige claro. - Time left y el valor (19 h : 57 m): Texto pequeño, color blanco o beige claro, de formato muy regular.
+
+------------------------------------------
+Forgotten Chest
+From: Nali
+Source: Level 15 Crypt
+Time left: 3h 4m
+Open
+--------------------------------------------
+
+You are a senior full-stack developer specializing in Python OCR systems, SQLite database design, and data migration. You will help me upgrade an existing Total Battle chest tracking application by adding new OCR capture capabilities and migrating from TXT files to a SQLite database.
+
+═══════════════════════════════════════════════════════════════════════════════
+## 📋 PROJECT OVERVIEW
+═══════════════════════════════════════════════════════════════════════════════
+
+**Current System:**
+- Python OCR application (Tesseract) that captures chest data from Total Battle game
+- Captures 3-line records: Chest name, Player (From:), Source
+- Saves to TXT files in `data/working/` and `data/archive/`
+- PowerShell launcher (tb-c1-en.ps1) for Windows
+
+**Target System:**
+- Capture 4-line records (add "Time left" field)
+- Migrate data storage to SQLite database
+- Maintain TXT backup files for compatibility
+- Prepare structure for future GUI dashboard
+
+═══════════════════════════════════════════════════════════════════════════════
+## 🎯 PHASE 1: UNDERSTAND TOTAL BATTLE CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+Before coding, briefly research and explain:
+
+1. **Chest System Mechanics:**
+   - How do chests work in Total Battle?
+   - What are typical chest sources (Crypt, Bank, Citadel, etc.)?
+   - Do chests have expiration timers? Maximum duration?
+
+2. **Key Findings for OCR:**
+   - Typical time format for chest expiration
+   - Any known UI/font challenges
+   - Validate: Is 19h 59m a reasonable maximum time?
+
+**Output:** Brief 3-4 paragraph summary with key technical insights.
+
+═══════════════════════════════════════════════════════════════════════════════
+## 🔧 PHASE 2: ANALYZE EXISTING CODE (tb.py)
+═══════════════════════════════════════════════════════════════════════════════
+
+**Current Architecture:**
+
+The existing `tb.py` script contains:
+- `TBConfig`: Configuration parser (reads config.cfg)
+- `TBScreen`: OCR capture and image preprocessing
+- `TBPlayer`, `TBChest`, `TBSource`: Validation classes
+- `TBCapture`: Main capture workflow (validate_capture method)
+- `TBProcess`: Data processing and summary generation
+
+**Key Method to Analyze:**
+```python
+# TBCapture.validate_capture() - Current 3-line processing
+def validate_capture(self, capture, count):
+    rows = capture.split("\n")
+    
+    # Currently processes in groups of 3
+    if len(rows) % 3 > 0:
+        # Error handling for malformed captures
+    
+    while len(rows) > 0:
+        chest = rows.pop()
+        player = rows.pop()
+        source = rows.pop()
+        # Validates each field using respective classes
+```
+
+**Analysis Required:**
+
+1. **Architecture Map:**
+   - Draw text-based flowchart: Screen → OCR → Validation → Storage
+   - Identify where coordinate-based capture happens (x1,y1,x2,y2)
+   - Locate file writing logic (currently in save_records)
+
+2. **Extension Points:**
+   - Best location to add 4th line ("Time left") processing
+   - How to integrate new TBTimeLeft validator class
+   - Database insertion points (replace/supplement TXT writes)
+   - Transform the expiration date (left time) of the chest into an actual date, 
+    when the chest was actually made (exploration_data): since we know that the left time date 
+    is a timer for opening the chest and the maximum time to do so is 20 hours, therefore the exploration_data 
+    date is the current date (day and time - left time). Save exploration_data on the chest_register table
+
+3. **Risk Assessment:**
+   - Breaking changes vs. backward compatibility
+   - Impact on existing archive files (3-line format)
+   - PowerShell script dependencies
+
+**Output:** 
+- Architecture diagram (ASCII/text)
+- List of functions requiring modification
+- Recommended modification strategy with risk mitigation
+
+═══════════════════════════════════════════════════════════════════════════════
+## 🕐 PHASE 3: IMPLEMENT TIME LEFT CAPTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+### **PROBLEM STATEMENT**
+
+**Current OCR Capture (3 lines):**
+Forgotten Chest
+From: Nali
+Source: Level 15 Crypt
+
+**New OCR Capture (4 lines):**
+Forgotten Chest
+From: Nali
+Source: Level 15 Crypt
+Time left: 87 h 30 m
+
+**Critical Issue:** The hourglass icon (⏳) is sometimes OCR-detected as the digit "8"
+
+---
+
+### **TIME VALIDATION REQUIREMENTS**
+
+| OCR Input | Detected Hours | Validation Action | Corrected Output |
+|-----------|----------------|-------------------|------------------|
+| `Time left: 7 h 30 m` | 7 | Valid | `7 h 30 m` |
+| `Time left: 8 h 30 m` | 8 | Valid (could be real) | `8 h 30 m` |
+| `Time left: 87 h 30 m` | 87 | **AUTO-CORRECT** (Remove "8") | `7 h 30 m` |
+| `Time left: 80 h 15 m` | 80 | **AUTO-CORRECT** | `0 h 15 m` |
+| `Time left: 89 h 45 m` | 89 | **AUTO-CORRECT** | `9 h 45 m` |
+| `Time left: 25 h 10 m` | 25 | **ERROR** (Exceeds max) | Prompt user |
+| `Time left: 19 h 59 m` | 19 | Valid (maximum) | `19 h 59 m` |
+
+**Validation Logic:**
+1. ✅ Maximum valid time: **19h 59m** (countdown timer)
+2. ✅ If hours >= 80 AND hours <= 89 → Remove first digit "8"
+3. ✅ If hours >= 20 → Flag as error, prompt user
+4. ✅ Regex pattern: `Time left:\s*(\d{1,2})\s*h\s*(\d{1,2})\s*m`
+
+---
+
+### **CODE MODIFICATIONS REQUIRED**
+
+**A. Create New Validation Class:**
+```python
+class TBTimeLeft(object):
+    """ Validates and normalizes 'Time left' field captured by OCR """
+    
+    def __init__(self):
+        self.time_pattern = re.compile(r'Time left:\s*(\d{1,2})\s*h\s*(\d{1,2})\s*m', re.IGNORECASE)
+    
+    def validate(self, time_str, line):
+        """
+        Validates and corrects time left field.
+        
+        Args:
+            time_str: Raw OCR text (e.g., "Time left: 87 h 30 m")
+            line: Line number for error reporting
+        
+        Returns:
+            (success: bool, corrected_time: str, warning: str)
+        """
+        # TODO: Implement validation logic from table above
+        # 1. Extract hours/minutes with regex
+        # 2. Apply hourglass "8" correction (80-89h → 0-9h)
+        # 3. Validate max 19h 59m
+        # 4. Return normalized format: "7 h 30 m"
+```
+
+**B. Modify TBCapture.validate_capture():**
+
+Change from 3-line to 4-line processing:
+```python
+def validate_capture(self, capture, count):
+    # ... existing code ...
+    
+    # CHANGE THIS:
+    if len(rows) % 3 > 0:  # OLD: 3-line validation
+    
+    # TO THIS:
+    if len(rows) % 4 > 0:  # NEW: 4-line validation
+        # Handle OCR errors for 4-line format
+    
+    # CHANGE THIS LOOP:
+    while len(rows) > 0:
+        chest = rows.pop()
+        player = rows.pop()
+        source = rows.pop()
+        # ADD NEW LINE:
+        time_left = rows.pop()
+        
+        # Validate time_left using TBTimeLeft class
+        success, corrected_time, warning = self.time_left_def.validate(time_left, line_count)
+        
+        if warning:
+            print(f"*** TIME WARNING: {warning}")
+            print(f"*** Auto-corrected: '{time_left}' → '{corrected_time}'")
+```
+
+**C. Update save_records():**
+
+Add 4th line to file output:
+```python
+def save_records(self):
+    for record in self.records:
+        chest = record[0]
+        player = "From : " + record[1]
+        source = "Source : " + record[2]
+        time_left = "Time left : " + record[3]  # NEW LINE
+        
+        # Write to files (add time_left)
+        self.sfile.writelines(time_left + "\n")
+        self.tfile.writelines(time_left + "\n")
+        self.wfile.writelines(time_left + "\n")
+```
+
+---
+
+### **DELIVERABLES FOR PHASE 3:**
+
+1. ✅ Complete `TBTimeLeft` class implementation
+2. ✅ Modified `validate_capture()` function (full code)
+3. ✅ Updated `save_records()` function
+4. ✅ Unit tests for time validation (5+ test cases)
+5. ✅ Error handling for edge cases
+
+**Success Criteria:**
+- 95%+ accuracy on hourglass "8" detection
+- No regression in existing 3-line processing
+- Clear user prompts for validation errors
+
+═══════════════════════════════════════════════════════════════════════════════
+## 🗄️ PHASE 4: SQLITE DATABASE DESIGN & MIGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+### **DATABASE SCHEMA**
+
+**Location:** `data/db/tb_chests_hlo.db`
+
+---
+
+#### **Table 1: chest_register** (Main transaction table)
+```sql
+CREATE TABLE chest_register (
+    id_register INTEGER PRIMARY KEY AUTOINCREMENT,
+    chest_name TEXT NOT NULL,
+    player_name_ocr TEXT NOT NULL,        -- Raw OCR capture
+    id_player INTEGER,                     -- FK to players_ocr
+    source TEXT NOT NULL,
+    time_left TEXT,                        -- Format: "7 h 30 m"
+    exploration_date,  -- format: year/month/day full time (hh:mm:ss)
+    capture_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+    clan TEXT NOT NULL,
+    FOREIGN KEY (id_player) REFERENCES clan_members(id_player)
+);
+
+CREATE INDEX idx_chest_player ON chest_register(id_player);
+CREATE INDEX idx_chest_datetime ON chest_register(capture_datetime);
+CREATE INDEX idx_chest_clan ON chest_register(clan);
+```
+
+---
+
+#### **Table 2: players_ocr** (OCR name normalization)
+```sql
+CREATE TABLE players_ocr (
+    id_player INTEGER PRIMARY KEY AUTOINCREMENT,
+    name_player TEXT UNIQUE NOT NULL,     -- Canonical player name
+    alias1_OCR TEXT,
+    alias2_OCR TEXT,
+    alias3_OCR TEXT,
+    alias4_OCR TEXT,
+    alias5_OCR TEXT,
+    alias6_OCR TEXT,
+    alias7_OCR TEXT,
+    alias8_OCR TEXT
+);
+
+CREATE UNIQUE INDEX idx_player_name ON players_ocr(name_player);
+```
+
+**Data Source:** Load from `config/players.csv`  
+**Format:** `PlayerName,alias1,alias2,...`
+
+---
+
+#### **Table 3: clan_members** (Player stats)
+```sql
+CREATE TABLE clan_members (
+    id_player INTEGER,                     -- FK to players_ocr
+    Might INTEGER DEFAULT 0,
+    Hero_Level INTEGER DEFAULT 0,
+    Guards_Level INTEGER DEFAULT 0,
+    Monsters_Level INTEGER DEFAULT 0,
+    Specialists_Level INTEGER DEFAULT 0,
+    Engineers_Level INTEGER DEFAULT 0,
+    Gold_Pass BOOLEAN DEFAULT 0,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_player) REFERENCES players_ocr(id_player)
+);
+```
+
+**Data Source:** Load from `config/info_members.csv`
+
+---
+
+#### **Table 4: chest_scores** (Scoring reference)
+```sql
+CREATE TABLE chest_scores (
+    id_score INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_name TEXT UNIQUE NOT NULL,     -- "Level 10 Crypt", etc.
+    score_value INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_source_name ON chest_scores(source_name);
+```
+
+**Data Source:** Load from existing score config file
+
+---
+
+#### **Table 5: capture_sessions** (Audit trail)
+```sql
+CREATE TABLE capture_sessions (
+    id_session INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_start DATETIME NOT NULL,
+    session_end DATETIME,
+    total_chests INTEGER DEFAULT 0,
+    ocr_errors INTEGER DEFAULT 0,
+    clan TEXT NOT NULL
+);
+```
+
+---
+
+### **PYTHON DATABASE CLASS**
+```python
+class TBDatabase(object):
+    """
+    Manages SQLite database connections and operations.
+    """
+    
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.conn = None
+        self.cursor = None
+    
+    def connect(self):
+        """Establish database connection"""
+        # TODO: Implement connection with error handling
+    
+    def create_schema(self):
+        """Create all tables if not exist"""
+        # TODO: Execute CREATE TABLE statements
+    
+    def load_csv_data(self, players_csv, scores_csv, members_csv):
+        """Migrate CSV configuration files to database"""
+        # TODO: Parse CSVs and INSERT into respective tables
+    
+    def insert_chest_record(self, chest, player_ocr, source, time_left, clan):
+        """
+        Insert new chest record, auto-resolve player ID.
+        
+        Args:
+            chest: Chest name
+            player_ocr: Raw player name from OCR
+            source: Chest source
+            time_left: Formatted time string
+            clan: Clan identifier
+        
+        Returns:
+            id_register or None on error
+        """
+        # TODO: 
+        # 1. Find id_player by matching player_ocr against players_ocr table
+        # 2. Handle unknown players (prompt user or auto-create)
+        # 3. INSERT into chest_register
+    
+    def get_player_id_by_name(self, ocr_name):
+        """
+        Resolve player ID from OCR name (check aliases).
+        
+        Returns:
+            id_player or None if not found
+        """
+        # TODO: Query players_ocr with LIKE matching on aliases
+    
+    def calculate_player_score(self, player_id, start_date, end_date):
+        """
+        Calculate total score for player in date range.
+        
+        Returns:
+            (total_score, chest_count)
+        """
+        # TODO: JOIN chest_register with chest_scores, SUM by player
+    
+    def migrate_txt_to_db(self, txt_file, clan):
+        """
+        Migrate existing TXT archive files to database.
+        Handles both 3-line (old) and 4-line (new) formats.
+        """
+        # TODO: 
+        # 1. Read TXT file line by line
+        # 2. Detect format (3-line vs 4-line)
+        # 3. Parse and insert_chest_record()
+    
+    def export_to_txt(self, output_file, start_date, end_date):
+        """
+        Export database records back to TXT format (backup).
+        """
+        # TODO: Query chest_register, format as 4-line records
+    
+    def close(self):
+        """Close database connection"""
+        if self.conn:
+            self.conn.close()
+```
+
+---
+
+### **DELIVERABLES FOR PHASE 4:**
+
+1. ✅ Complete SQL schema (all 5 tables)
+2. ✅ `TBDatabase` class with all methods implemented
+3. ✅ CSV-to-DB migration script
+4. ✅ TXT-to-DB migration script (handle 3-line legacy format)
+5. ✅ Sample queries for dashboard:
+   - Top 10 contributors (by score)
+   - Daily chest count per player
+   - Source distribution (for pie charts)
+6. ✅ Backward compatibility: Function to export DB → TXT
+
+**Critical Decisions Needed:**
+
+1. Should `time_left` be stored as TEXT ("7 h 30 m") or INTEGER (minutes)?
+   - **Recommendation:** TEXT for now, easier to display
+2. How to handle retired players?
+   - **Recommendation:** Add `is_active` BOOLEAN to `clan_members`
+3. Migrate existing TXT archives to DB?
+   - **Recommendation:** Optional script, keep TXT as source of truth initially
+
+═══════════════════════════════════════════════════════════════════════════════
+## 📦 INTEGRATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+**Modified Files:**
+- ✅ `tb.py` - Add TBTimeLeft class, modify validate_capture(), integrate TBDatabase
+- ✅ `config/config.cfg` - Add database path configuration
+- ⚠️ `tb-c1-en.ps1` - No changes needed (uses tb.py as-is)
+
+**New Files:**
+- ✅ `bin/db_manager.py` - Standalone TBDatabase class
+- ✅ `bin/migrate_csv.py` - One-time CSV → DB migration script
+- ✅ `bin/migrate_txt.py` - One-time TXT → DB migration script
+- ✅ `data/db/tb_chests_hlo.db` - SQLite database file
+
+**Data Flow:**
+1. OCR Capture → Validate (4 lines) → TBDatabase.insert_chest_record()
+2. Parallel save to TXT (backup in `data/working/`)
+3. Daily archive: Export DB → TXT (maintain compatibility)
+
+═══════════════════════════════════════════════════════════════════════════════
+## 🎯 DELIVERABLES SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+
+Please provide the following in your response:
+
+**PHASE 1:**
+- [ ] Brief Total Battle context summary (3-4 paragraphs)
+
+**PHASE 2:**
+- [ ] ASCII architecture diagram (current system)
+- [ ] List of functions requiring modification
+- [ ] Risk assessment and mitigation strategy
+
+**PHASE 3:**
+- [ ] Complete `TBTimeLeft` class (production-ready code)
+- [ ] Modified `validate_capture()` method (full implementation)
+- [ ] Updated `save_records()` method
+- [ ] 5+ unit test cases for time validation
+- [ ] Inline comments explaining changes
+
+**PHASE 4:**
+- [ ] Complete SQL schema (5 tables with indexes)
+- [ ] Full `TBDatabase` class implementation
+- [ ] `migrate_csv.py` script (working code)
+- [ ] `migrate_txt.py` script (handles 3-line and 4-line formats)
+- [ ] 5 sample SQL queries for dashboard
+
+**BONUS:**
+- [ ] Installation instructions (pip requirements)
+- [ ] Testing strategy (how to validate changes)
+- [ ] Rollback plan (if database migration fails)
+
+═══════════════════════════════════════════════════════════════════════════════
+## ⚠️ CRITICAL CONSTRAINTS
+═══════════════════════════════════════════════════════════════════════════════
+
+- ✅ MUST maintain backward compatibility with 3-line TXT archives
+- ✅ MUST keep TXT backup files (dual storage: DB + TXT)
+- ✅ MUST validate time corrections automatically (80-89h → 0-9h)
+- ✅ MUST handle unknown players gracefully (prompt or auto-add)
+- ❌ DO NOT break existing PowerShell launcher (tb-c1-en.ps1)
+- ❌ DO NOT change coordinate capture system (x1,y1,x2,y2)
+- ❌ DO NOT remove existing validation classes (TBPlayer, TBChest, TBSource)
+
+═══════════════════════════════════════════════════════════════════════════════
+## 📚 EXISTING CODE REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+**Current tb.py structure:** [Paste your tb.py code here if context window allows, or reference key classes]
+
+**Players.csv format:**
+PlayerName,alias1,alias2,...
+Nali,nali,Nali1,nali_ocr
+Yozahm9,yozahm9,Yoza,yozahm
+
+**Project Structure:**
+Chest-CounterV01/
+├── bin/
+│   ├── tb.py                  # Main program (to be modified)
+│   ├── tb-c1-en.ps1          # PowerShell launcher (unchanged)
+│   └── [NEW] db_manager.py   # Database class
+├── config/
+│   ├── config.cfg            # Configuration file
+│   ├── players.csv           # Player aliases
+│   └── scores-hlo.csv        # Chest scoring
+├── data/
+│   ├── archive/              # Historical TXT files
+│   ├── working/              # Current capture TXT files
+│   └── db/
+│       └── tb_chests_hlo.db  # SQLite database (NEW)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+**Your response should be comprehensive, production-ready code with:**
+- Detailed inline comments
+- Error handling for all edge cases
+- Clear separation of concerns (modular design)
+- Logging for debugging (use Python logging module)
+- Type hints where appropriate (Python 3.7+)
+
+Begin with PHASE 1 and proceed sequentially through all phases. If you need clarification on any requirement, state your assumptions clearly.

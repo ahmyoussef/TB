@@ -1,0 +1,7 @@
+--------------- 2026-01-14 21:50:07 --------------------------
+Fire Chest From: Glerafan Source: Level 15 Crypt
+m :  3 h : 1 m
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-14 21:50:30 --------------------------
+Fire Chest From: Glerafan Source: Level 15 Crypt
+m : 8 3 h  1 m

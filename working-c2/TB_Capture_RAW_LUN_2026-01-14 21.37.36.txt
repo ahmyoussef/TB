@@ -1,0 +1,15 @@
+--------------- 2026-01-14 21:37:41 --------------------------
+Fire Chest From: Glerafan Source: Level 15 Crypt
+3 h : 13 m
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-14 21:37:47 --------------------------
+Fire Chest From: Glerafan Source: Level 15 Crypt
+3 h 13 m
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-14 21:40:32 --------------------------
+ayer parsed_player rce is None and parsed_ source: urce parsed_ source
+
+--- WARNING: The user has asked to redo the capture so watch for duplicates.
+--------------- 2026-01-14 21:40:49 --------------------------
+Fire Chest From: Glerafan Source: Level 15 Crypt
+3 h 10 m
