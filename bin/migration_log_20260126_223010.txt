@@ -1,0 +1,2032 @@
+CHEST DEFINITIONS MIGRATION LOG
+================================================================================
+Date: 2026-01-26 22:30:10.056693
+Total: 289
+Migrated: 289
+Skipped: 0
+Errors: 0
+================================================================================
+
+ID: 1
+  Code    : chest
+  Name    : *
+  Source  : Bad Hermes
+  Points  : 0
+  Status  : migrated
+
+ID: 2
+  Code    : chest
+  Name    : *
+  Source  : Bad Jormungandr
+  Points  : 0
+  Status  : migrated
+
+ID: 3
+  Code    : tournament
+  Name    : *
+  Source  : Christmas Ritual tournament
+  Points  : 100
+  Status  : migrated
+
+ID: 4
+  Code    : chest
+  Name    : *
+  Source  : Conqueror's Chest
+  Points  : 20
+  Status  : migrated
+
+ID: 5
+  Code    : event
+  Name    : *
+  Source  : Spoils of Dread event
+  Points  : 20
+  Status  : migrated
+
+ID: 6
+  Code    : tournament
+  Name    : *
+  Source  : Summerfest tournament
+  Points  : 100
+  Status  : migrated
+
+ID: 7
+  Code    : chest
+  Name    : *
+  Source  : Abyss Guardian
+  Points  : 10
+  Status  : migrated
+
+ID: 8
+  Code    : chest_epic
+  Name    : Golden Guardian Legendary Chest
+  Source  : Epic Ancient Squad
+  Points  : 25
+  Status  : migrated
+
+ID: 9
+  Code    : chest_epic
+  Name    : Golden Guardian Epic Chest
+  Source  : Epic Ancient Squad
+  Points  : 20
+  Status  : migrated
+
+ID: 10
+  Code    : chest_epic
+  Name    : Golden Guardian Ascendant Chest
+  Source  : Epic Ancient Squad
+  Points  : 10
+  Status  : migrated
+
+ID: 11
+  Code    : chest_epic
+  Name    : Godlike Golden Guardian Chest
+  Source  : Epic Ancient Squad
+  Points  : 10
+  Status  : migrated
+
+ID: 12
+  Code    : event
+  Name    : Ancients Chest
+  Source  : Rise of the Ancients Event
+  Points  : 100
+  Status  : migrated
+
+ID: 13
+  Code    : event
+  Name    : Quick March Chest
+  Source  : Rise of the Ancients Event
+  Points  : 100
+  Status  : migrated
+
+ID: 14
+  Code    : vault_of_the_ancients_10-14
+  Name    : Sapphire Chest
+  Source  : Level 10-14 Vault of the Ancients
+  Points  : 5
+  Status  : migrated
+
+ID: 15
+  Code    : vault_of_the_ancients_15-19
+  Name    : Sapphire Chest
+  Source  : Level 15-19 Vault of the Ancients
+  Points  : 10
+  Status  : migrated
+
+ID: 16
+  Code    : vault_of_the_ancients_20-24
+  Name    : Sapphire Chest
+  Source  : Level 20-24 Vault of the Ancients
+  Points  : 15
+  Status  : migrated
+
+ID: 17
+  Code    : vault_of_the_ancients_25-29
+  Name    : Sapphire Chest
+  Source  : Level 25-29 Vault of the Ancients
+  Points  : 20
+  Status  : migrated
+
+ID: 18
+  Code    : vault_of_the_ancients_30-34
+  Name    : Sapphire Chest
+  Source  : Level 30-34 Vault of the Ancients
+  Points  : 25
+  Status  : migrated
+
+ID: 19
+  Code    : vault_of_the_ancients_35-39
+  Name    : Sapphire Chest
+  Source  : Level 35-39 Vault of the Ancients
+  Points  : 30
+  Status  : migrated
+
+ID: 20
+  Code    : vault_of_the_ancients_40-44
+  Name    : Sapphire Chest
+  Source  : Level 40-44 Vault of the Ancients
+  Points  : 35
+  Status  : migrated
+
+ID: 21
+  Code    : vault_of_the_ancients_45
+  Name    : Sapphire Chest
+  Source  : Level 45 Vault of the Ancients
+  Points  : 40
+  Status  : migrated
+
+ID: 22
+  Code    : chest
+  Name    : Gladiator's Chest
+  Source  : Arena
+  Points  : 1
+  Status  : migrated
+
+ID: 23
+  Code    : tournament
+  Name    : Sacred Rituals Chest
+  Source  : Sacred Rituals Tournament
+  Points  : 50
+  Status  : migrated
+
+ID: 24
+  Code    : chest
+  Name    : Snowman chest
+  Source  : Snowman
+  Points  : 25
+  Status  : migrated
+
+ID: 25
+  Code    : clan_wealth
+  Name    : Common Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 26
+  Code    : clan_wealth
+  Name    : Ascendant Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 27
+  Code    : clan_wealth
+  Name    : Uncommon Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 28
+  Code    : clan_wealth
+  Name    : Rare Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 29
+  Code    : clan_wealth
+  Name    : Epic Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 30
+  Code    : clan_wealth
+  Name    : Legendary Chest of Wealth
+  Source  : Clan Wealth
+  Points  : 0
+  Status  : migrated
+
+ID: 31
+  Code    : crypt_10
+  Name    : Cobra Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 32
+  Code    : crypt_10
+  Name    : Elegant Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 33
+  Code    : crypt_10
+  Name    : Fire Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 34
+  Code    : crypt_10
+  Name    : Stone Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 35
+  Code    : crypt_10
+  Name    : Barbarian Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 36
+  Code    : crypt_10
+  Name    : Gnome Workshop Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 37
+  Code    : crypt_10
+  Name    : Orc Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 38
+  Code    : crypt_10
+  Name    : Infernal Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 39
+  Code    : crypt_10
+  Name    : Mayan Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 40
+  Code    : crypt_10
+  Name    : Sand Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 41
+  Code    : crypt_10
+  Name    : Bone Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 42
+  Code    : crypt_10
+  Name    : Forgotten Chest
+  Source  : Level 10 Crypt
+  Points  : 5
+  Status  : migrated
+
+ID: 43
+  Code    : crypt_15
+  Name    : Fire Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 44
+  Code    : crypt_15
+  Name    : Bone Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 45
+  Code    : crypt_15
+  Name    : Mayan Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 46
+  Code    : crypt_15
+  Name    : Sand Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 47
+  Code    : crypt_15
+  Name    : Cobra Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 48
+  Code    : crypt_15
+  Name    : Orc Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 49
+  Code    : crypt_15
+  Name    : Infernal Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 50
+  Code    : crypt_15
+  Name    : Barbarian Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 51
+  Code    : crypt_15
+  Name    : Elegant Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 52
+  Code    : crypt_15
+  Name    : Stone Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 53
+  Code    : crypt_15
+  Name    : Forgotten Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 54
+  Code    : crypt_15
+  Name    : Gnome Workshop Chest
+  Source  : Level 15 Crypt
+  Points  : 25
+  Status  : migrated
+
+ID: 55
+  Code    : crypt_20
+  Name    : Bone Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 56
+  Code    : crypt_20
+  Name    : Sand Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 57
+  Code    : crypt_20
+  Name    : Stone Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 58
+  Code    : crypt_20
+  Name    : Forgotten Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 59
+  Code    : crypt_20
+  Name    : Barbarian Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 60
+  Code    : crypt_20
+  Name    : Infernal Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 61
+  Code    : crypt_20
+  Name    : Orc Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 62
+  Code    : crypt_20
+  Name    : Gnome Workshop Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 63
+  Code    : crypt_20
+  Name    : Elegant Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 64
+  Code    : crypt_20
+  Name    : Fire Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 65
+  Code    : crypt_20
+  Name    : Cobra Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 66
+  Code    : crypt_20
+  Name    : Mayan Chest
+  Source  : Level 20 Crypt
+  Points  : 80
+  Status  : migrated
+
+ID: 67
+  Code    : crypt_25
+  Name    : Forgotten Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 68
+  Code    : crypt_25
+  Name    : Sand Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 69
+  Code    : crypt_25
+  Name    : Infernal Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 70
+  Code    : crypt_25
+  Name    : Mayan Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 71
+  Code    : crypt_25
+  Name    : Fire Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 72
+  Code    : crypt_25
+  Name    : Cobra Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 73
+  Code    : crypt_25
+  Name    : Stone Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 74
+  Code    : crypt_25
+  Name    : Bone Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 75
+  Code    : crypt_25
+  Name    : Elegant Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 76
+  Code    : crypt_25
+  Name    : Barbarian Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 77
+  Code    : crypt_25
+  Name    : Gnome Workshop Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 78
+  Code    : crypt_25
+  Name    : Orc Chest
+  Source  : Level 25 Crypt
+  Points  : 275
+  Status  : migrated
+
+ID: 79
+  Code    : crypt_5
+  Name    : Cobra Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 80
+  Code    : crypt_5
+  Name    : Elegant Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 81
+  Code    : crypt_5
+  Name    : Stone Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 82
+  Code    : crypt_5
+  Name    : Gnome Workshop Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 83
+  Code    : crypt_5
+  Name    : Bone Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 84
+  Code    : crypt_5
+  Name    : Infernal Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 85
+  Code    : crypt_5
+  Name    : Fire Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 86
+  Code    : crypt_5
+  Name    : Barbarian Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 87
+  Code    : crypt_5
+  Name    : Orc Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 88
+  Code    : crypt_5
+  Name    : Sand Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 89
+  Code    : crypt_5
+  Name    : Mayan Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 90
+  Code    : crypt_5
+  Name    : Forgotten Chest
+  Source  : Level 5 Crypt
+  Points  : 1
+  Status  : migrated
+
+ID: 91
+  Code    : citadel_cursed_20
+  Name    : Cursed Citadel Chest
+  Source  : Level 20 Citadel
+  Points  : 60
+  Status  : migrated
+
+ID: 92
+  Code    : citadel_cursed_25
+  Name    : Cursed Citadel Chest
+  Source  : Level 25 Citadel
+  Points  : 140
+  Status  : migrated
+
+ID: 93
+  Code    : event
+  Name    : Dark Omens Chest
+  Source  : Dark Omens Event
+  Points  : 50
+  Status  : migrated
+
+ID: 94
+  Code    : event
+  Name    : Dark Omens Ranking Chest
+  Source  : Dark Omens Event
+  Points  : 0
+  Status  : migrated
+
+ID: 95
+  Code    : event
+  Name    : Omen Chest
+  Source  : Dark Omens Event
+  Points  : 10
+  Status  : migrated
+
+ID: 96
+  Code    : chest_epic
+  Name    : Epic Omen Chest
+  Source  : Summoning Dark Omens
+  Points  : 75
+  Status  : migrated
+
+ID: 97
+  Code    : chest
+  Name    : Major Omen Chest
+  Source  : Summoning Dark Omens
+  Points  : 50
+  Status  : migrated
+
+ID: 98
+  Code    : chest
+  Name    : Minor Omen Chest
+  Source  : Summoning Dark Omens
+  Points  : 25
+  Status  : migrated
+
+ID: 99
+  Code    : monster
+  Name    : Carrot Chest
+  Source  : Carrot Monster
+  Points  : 10
+  Status  : migrated
+
+ID: 100
+  Code    : citadel_elven_10
+  Name    : Elven Citadel Chest
+  Source  : Level 10 Citadel
+  Points  : 4
+  Status  : migrated
+
+ID: 101
+  Code    : citadel_elven_15
+  Name    : Elven Citadel Chest
+  Source  : Level 15 Citadel
+  Points  : 20
+  Status  : migrated
+
+ID: 102
+  Code    : citadel_elven_20
+  Name    : Elven Citadel Chest
+  Source  : Level 20 Citadel
+  Points  : 60
+  Status  : migrated
+
+ID: 103
+  Code    : citadel_elven_25
+  Name    : Elven Citadel Chest
+  Source  : Level 25 Citadel
+  Points  : 140
+  Status  : migrated
+
+ID: 104
+  Code    : citadel_elven_30
+  Name    : Elven Citadel Chest
+  Source  : Level 30 Citadel
+  Points  : 380
+  Status  : migrated
+
+ID: 105
+  Code    : crypt_epic_15
+  Name    : Ancient Bastion Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 106
+  Code    : crypt_epic_15
+  Name    : Trillium Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 107
+  Code    : crypt_epic_15
+  Name    : Turtle Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 108
+  Code    : crypt_epic_15
+  Name    : Harpy Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 109
+  Code    : crypt_epic_15
+  Name    : Scorpion Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 110
+  Code    : crypt_epic_15
+  Name    : Barbarian Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 111
+  Code    : crypt_epic_15
+  Name    : Titansteel Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 112
+  Code    : crypt_epic_15
+  Name    : White Wood Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 113
+  Code    : crypt_epic_15
+  Name    : Cobalt Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 114
+  Code    : crypt_epic_15
+  Name    : House of Horrors Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 115
+  Code    : crypt_epic_15
+  Name    : Priest's Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 116
+  Code    : crypt_epic_15
+  Name    : Abandoned Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 117
+  Code    : crypt_epic_15
+  Name    : Ancient Warrior's Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 118
+  Code    : crypt_epic_15
+  Name    : Minotaur Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 119
+  Code    : crypt_epic_15
+  Name    : Chest of the Cursed
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 120
+  Code    : crypt_epic_15
+  Name    : Braided Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 121
+  Code    : crypt_epic_15
+  Name    : Scarab Chest
+  Source  : Level 15 Epic Crypt
+  Points  : 60
+  Status  : migrated
+
+ID: 122
+  Code    : crypt_epic_20
+  Name    : Abandoned Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 123
+  Code    : crypt_epic_20
+  Name    : Cobalt Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 124
+  Code    : crypt_epic_20
+  Name    : Ancient Warrior's Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 125
+  Code    : crypt_epic_20
+  Name    : Priest's Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 126
+  Code    : crypt_epic_20
+  Name    : Turtle Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 127
+  Code    : crypt_epic_20
+  Name    : Minotaur Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 128
+  Code    : crypt_epic_20
+  Name    : Harpy Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 129
+  Code    : crypt_epic_20
+  Name    : White Wood Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 130
+  Code    : crypt_epic_20
+  Name    : Barbarian Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 131
+  Code    : crypt_epic_20
+  Name    : Titansteel Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 132
+  Code    : crypt_epic_20
+  Name    : Scarab Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 133
+  Code    : crypt_epic_20
+  Name    : Ancient Bastion Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 134
+  Code    : crypt_epic_20
+  Name    : Trillium Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 135
+  Code    : crypt_epic_20
+  Name    : Braided Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 136
+  Code    : crypt_epic_20
+  Name    : House of Horrors Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 137
+  Code    : crypt_epic_20
+  Name    : Chest of the Cursed
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 138
+  Code    : crypt_epic_20
+  Name    : Scorpion Chest
+  Source  : Level 20 Epic Crypt
+  Points  : 225
+  Status  : migrated
+
+ID: 139
+  Code    : crypt_epic_25
+  Name    : House of Horrors Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 140
+  Code    : crypt_epic_25
+  Name    : Priest's Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 141
+  Code    : crypt_epic_25
+  Name    : Ancient Warrior's Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 142
+  Code    : crypt_epic_25
+  Name    : Minotaur Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 143
+  Code    : crypt_epic_25
+  Name    : Cobalt Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 144
+  Code    : crypt_epic_25
+  Name    : White Wood Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 145
+  Code    : crypt_epic_25
+  Name    : Barbarian Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 146
+  Code    : crypt_epic_25
+  Name    : Scorpion Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 147
+  Code    : crypt_epic_25
+  Name    : Harpy Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 148
+  Code    : crypt_epic_25
+  Name    : Turtle Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 149
+  Code    : crypt_epic_25
+  Name    : Braided Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 150
+  Code    : crypt_epic_25
+  Name    : Scarab Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 151
+  Code    : crypt_epic_25
+  Name    : Abandoned Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 152
+  Code    : crypt_epic_25
+  Name    : Trillium Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 153
+  Code    : crypt_epic_25
+  Name    : Ancient Bastion Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 154
+  Code    : crypt_epic_25
+  Name    : Chest of the Cursed
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 155
+  Code    : crypt_epic_25
+  Name    : Titansteel Chest
+  Source  : Level 25 Epic Crypt
+  Points  : 450
+  Status  : migrated
+
+ID: 156
+  Code    : crypt_epic_30
+  Name    : White Wood Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 157
+  Code    : crypt_epic_30
+  Name    : Ancient Bastion Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 158
+  Code    : crypt_epic_30
+  Name    : Braided Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 159
+  Code    : crypt_epic_30
+  Name    : Trillium Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 160
+  Code    : crypt_epic_30
+  Name    : Priest's Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 161
+  Code    : crypt_epic_30
+  Name    : Abandoned Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 162
+  Code    : crypt_epic_30
+  Name    : House of Horrors Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 163
+  Code    : crypt_epic_30
+  Name    : Minotaur Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 164
+  Code    : crypt_epic_30
+  Name    : Scarab Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 165
+  Code    : crypt_epic_30
+  Name    : Turtle Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 166
+  Code    : crypt_epic_30
+  Name    : Titansteel Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 167
+  Code    : crypt_epic_30
+  Name    : Barbarian Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 168
+  Code    : crypt_epic_30
+  Name    : Ancient Warrior's Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 169
+  Code    : crypt_epic_30
+  Name    : Cobalt Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 170
+  Code    : crypt_epic_30
+  Name    : Harpy Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 171
+  Code    : crypt_epic_30
+  Name    : Chest of the Cursed
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 172
+  Code    : crypt_epic_30
+  Name    : Scorpion Chest
+  Source  : Level 30 Epic Crypt
+  Points  : 700
+  Status  : migrated
+
+ID: 173
+  Code    : crypt_epic_35
+  Name    : House of Horrors Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 174
+  Code    : crypt_epic_35
+  Name    : Priest's Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 175
+  Code    : crypt_epic_35
+  Name    : Abandoned Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 176
+  Code    : crypt_epic_35
+  Name    : Scarab Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 177
+  Code    : crypt_epic_35
+  Name    : White Wood Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 178
+  Code    : crypt_epic_35
+  Name    : Ancient Bastion Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 179
+  Code    : crypt_epic_35
+  Name    : Scorpion Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 180
+  Code    : crypt_epic_35
+  Name    : Chest of the Cursed
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 181
+  Code    : crypt_epic_35
+  Name    : Titansteel Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 182
+  Code    : crypt_epic_35
+  Name    : Turtle Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 183
+  Code    : crypt_epic_35
+  Name    : Cobalt Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 184
+  Code    : crypt_epic_35
+  Name    : Trillium Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 185
+  Code    : crypt_epic_35
+  Name    : Ancient Warrior's Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 186
+  Code    : crypt_epic_35
+  Name    : Harpy Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 187
+  Code    : crypt_epic_35
+  Name    : Braided Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 188
+  Code    : crypt_epic_35
+  Name    : Barbarian Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 189
+  Code    : crypt_epic_35
+  Name    : Minotaur Chest
+  Source  : Level 35 Epic Crypt
+  Points  : 1000
+  Status  : migrated
+
+ID: 190
+  Code    : chest_epic
+  Name    : Arachne Chest
+  Source  : Arachne's Swarm Epic Squad
+  Points  : 3500
+  Status  : migrated
+
+ID: 191
+  Code    : chest
+  Name    : Easter Chest
+  Source  : Beastman
+  Points  : 500
+  Status  : migrated
+
+ID: 192
+  Code    : chest
+  Name    : Bloomfang Chest
+  Source  : Bloomfang's Rage
+  Points  : 50
+  Status  : migrated
+
+ID: 193
+  Code    : event
+  Name    : Arcane Chest
+  Source  : Dark Omens Event
+  Points  : 500
+  Status  : migrated
+
+ID: 194
+  Code    : chest
+  Name    : Doomtree Chest
+  Source  : Doomtree Invasion
+  Points  : 500
+  Status  : migrated
+
+ID: 195
+  Code    : chest_epic
+  Name    : Basilisk Chest
+  Source  : Epic Basilisk squad
+  Points  : 500
+  Status  : migrated
+
+ID: 196
+  Code    : chest_epic
+  Name    : Briareus Chest
+  Source  : Epic Briareus Squad
+  Points  : 200
+  Status  : migrated
+
+ID: 197
+  Code    : chest_epic
+  Name    : Chimera Chest
+  Source  : Epic Chimera Squad
+  Points  : 100
+  Status  : migrated
+
+ID: 198
+  Code    : chest_epic
+  Name    : Fenrir's Chest
+  Source  : Epic Fenrir Squad
+  Points  : 500
+  Status  : migrated
+
+ID: 199
+  Code    : chest_epic
+  Name    : Hells Blacksmith's Chest
+  Source  : Epic Inferno Squad
+  Points  : 500
+  Status  : migrated
+
+ID: 200
+  Code    : chest_epic
+  Name    : Fire Hydra Chest
+  Source  : Epic Inferno Squad
+  Points  : 50
+  Status  : migrated
+
+ID: 201
+  Code    : chest_epic
+  Name    : Jörmungandr's Chest
+  Source  : Epic Jörmungandr Squad
+  Points  : 500
+  Status  : migrated
+
+ID: 202
+  Code    : monster_epic
+  Name    : Epic Monster Chest
+  Source  : Epic Undead Squad
+  Points  : 500
+  Status  : migrated
+
+ID: 203
+  Code    : chest
+  Name    : Forest Hermits Chest
+  Source  : Forest Hermit
+  Points  : 500
+  Status  : migrated
+
+ID: 204
+  Code    : pumpkin
+  Name    : Jack Reaper Chest
+  Source  : Pumpkin
+  Points  : 500
+  Status  : migrated
+
+ID: 205
+  Code    : chest
+  Name    : Shadow Chest
+  Source  : Shadow City
+  Points  : 500
+  Status  : migrated
+
+ID: 206
+  Code    : chest
+  Name    : Vineweaver Chest
+  Source  : Vineweaver
+  Points  : 500
+  Status  : migrated
+
+ID: 207
+  Code    : monster
+  Name    : Yao Chest
+  Source  : Yao Monster
+  Points  : 500
+  Status  : migrated
+
+ID: 208
+  Code    : chest
+  Name    : Lotus Chest
+  Source  : Yokai
+  Points  : 500
+  Status  : migrated
+
+ID: 209
+  Code    : tournament
+  Name    : Autumn Gift
+  Source  : Autumnfest Tournament
+  Points  : 10
+  Status  : migrated
+
+ID: 210
+  Code    : pumpkin
+  Name    : Pumpkin Chest
+  Source  : Pumpkin
+  Points  : 10
+  Status  : migrated
+
+ID: 211
+  Code    : chest
+  Name    : Sakura of Plenty Chest
+  Source  : Sakura of Plenty
+  Points  : 25
+  Status  : migrated
+
+ID: 212
+  Code    : chest
+  Name    : Yogwai Chest
+  Source  : Yogwai
+  Points  : 10
+  Status  : migrated
+
+ID: 213
+  Code    : hermes_store
+  Name    : Hermes Chest
+  Source  : Hermes' Store
+  Points  : 100
+  Status  : migrated
+
+ID: 214
+  Code    : monster_16
+  Name    : Undead Chest
+  Source  : Level 16 Heroic Monster
+  Points  : 30
+  Status  : migrated
+
+ID: 215
+  Code    : monster_elven_17
+  Name    : Elven Chest
+  Source  : Level 17 Heroic Monster
+  Points  : 40
+  Status  : migrated
+
+ID: 216
+  Code    : monster_cursed_18
+  Name    : Cursed Chest
+  Source  : Level 18 Heroic Monster
+  Points  : 50
+  Status  : migrated
+
+ID: 217
+  Code    : monster_19
+  Name    : Barbarian Chest
+  Source  : Level 19 Heroic Monster
+  Points  : 60
+  Status  : migrated
+
+ID: 218
+  Code    : monster_20
+  Name    : Inferno Chest
+  Source  : Level 20 Heroic Monster
+  Points  : 70
+  Status  : migrated
+
+ID: 219
+  Code    : monster_21
+  Name    : Undead Chest
+  Source  : Level 21 Heroic Monster
+  Points  : 80
+  Status  : migrated
+
+ID: 220
+  Code    : monster_elven_22
+  Name    : Elven Chest
+  Source  : Level 22 Heroic Monster
+  Points  : 90
+  Status  : migrated
+
+ID: 221
+  Code    : monster_cursed_23
+  Name    : Cursed Chest
+  Source  : Level 23 Heroic Monster
+  Points  : 100
+  Status  : migrated
+
+ID: 222
+  Code    : monster_24
+  Name    : Barbarian Chest
+  Source  : Level 24 Heroic Monster
+  Points  : 125
+  Status  : migrated
+
+ID: 223
+  Code    : monster_25
+  Name    : Inferno Chest
+  Source  : Level 25 Heroic Monster
+  Points  : 150
+  Status  : migrated
+
+ID: 224
+  Code    : monster_26
+  Name    : Undead Chest
+  Source  : Level 26 Heroic Monster
+  Points  : 175
+  Status  : migrated
+
+ID: 225
+  Code    : monster_elven_27
+  Name    : Elven Chest
+  Source  : Level 27 Heroic Monster
+  Points  : 200
+  Status  : migrated
+
+ID: 226
+  Code    : monster_cursed_28
+  Name    : Cursed Chest
+  Source  : Level 28 Heroic Monster
+  Points  : 225
+  Status  : migrated
+
+ID: 227
+  Code    : monster_29
+  Name    : Barbarian Chest
+  Source  : Level 29 Heroic Monster
+  Points  : 250
+  Status  : migrated
+
+ID: 228
+  Code    : monster_30
+  Name    : Inferno Chest
+  Source  : Level 30 Heroic Monster
+  Points  : 275
+  Status  : migrated
+
+ID: 229
+  Code    : monster_31
+  Name    : Undead Chest
+  Source  : Level 31 Heroic Monster
+  Points  : 300
+  Status  : migrated
+
+ID: 230
+  Code    : monster_elven_32
+  Name    : Elven Chest
+  Source  : Level 32 Heroic Monster
+  Points  : 325
+  Status  : migrated
+
+ID: 231
+  Code    : monster_cursed_33
+  Name    : Cursed Chest
+  Source  : Level 33 Heroic Monster
+  Points  : 350
+  Status  : migrated
+
+ID: 232
+  Code    : monster_34
+  Name    : Barbarian Chest
+  Source  : Level 34 Heroic Monster
+  Points  : 375
+  Status  : migrated
+
+ID: 233
+  Code    : monster_35
+  Name    : Inferno Chest
+  Source  : Level 35 Heroic Monster
+  Points  : 400
+  Status  : migrated
+
+ID: 234
+  Code    : monster_36
+  Name    : Undead Chest
+  Source  : Level 36 Heroic Monster
+  Points  : 425
+  Status  : migrated
+
+ID: 235
+  Code    : monster_elven_37
+  Name    : Elven Chest
+  Source  : Level 37 Heroic Monster
+  Points  : 450
+  Status  : migrated
+
+ID: 236
+  Code    : monster_cursed_38
+  Name    : Cursed Chest
+  Source  : Level 38 Heroic Monster
+  Points  : 475
+  Status  : migrated
+
+ID: 237
+  Code    : monster_39
+  Name    : Barbarian Chest
+  Source  : Level 39 Heroic Monster
+  Points  : 500
+  Status  : migrated
+
+ID: 238
+  Code    : monster_40
+  Name    : Inferno Chest
+  Source  : Level 40 Heroic Monster
+  Points  : 525
+  Status  : migrated
+
+ID: 239
+  Code    : monster_41
+  Name    : Undead Chest
+  Source  : Level 41 Heroic Monster
+  Points  : 550
+  Status  : migrated
+
+ID: 240
+  Code    : monster_elven_42
+  Name    : Elven Chest
+  Source  : Level 42 Heroic Monster
+  Points  : 575
+  Status  : migrated
+
+ID: 241
+  Code    : monster_cursed_43
+  Name    : Cursed Chest
+  Source  : Level 43 Heroic Monster
+  Points  : 600
+  Status  : migrated
+
+ID: 242
+  Code    : monster_44
+  Name    : Barbarian Chest
+  Source  : Level 44 Heroic Monster
+  Points  : 750
+  Status  : migrated
+
+ID: 243
+  Code    : monster_45
+  Name    : Inferno Chest
+  Source  : Level 45 Heroic Monster
+  Points  : 1000
+  Status  : migrated
+
+ID: 244
+  Code    : pumpkin
+  Name    : *
+  Source  : Epic Jack Reaper Chest
+  Points  : 500
+  Status  : migrated
+
+ID: 245
+  Code    : chest
+  Name    : Merchant's Chest
+  Source  : Mercenary Exchange
+  Points  : 250
+  Status  : migrated
+
+ID: 246
+  Code    : jormungandr_shop
+  Name    : Jörmungandr's Chest
+  Source  : Jormungandr Shop
+  Points  : 100
+  Status  : migrated
+
+ID: 247
+  Code    : crypt_rare_10
+  Name    : Rare Dragon Chest
+  Source  : Level 10 Rare Crypt
+  Points  : 8
+  Status  : migrated
+
+ID: 248
+  Code    : crypt_rare_15
+  Name    : Rare Dragon Chest
+  Source  : Level 15 Rare Crypt
+  Points  : 40
+  Status  : migrated
+
+ID: 249
+  Code    : crypt_rare_20
+  Name    : Rare Dragon Chest
+  Source  : Level 20 Rare Crypt
+  Points  : 140
+  Status  : migrated
+
+ID: 250
+  Code    : crypt_rare_25
+  Name    : Rare Dragon Chest
+  Source  : Level 25 Rare Crypt
+  Points  : 360
+  Status  : migrated
+
+ID: 251
+  Code    : crypt_rare_30
+  Name    : Rare Dragon Chest
+  Source  : Level 30 Rare Crypt
+  Points  : 600
+  Status  : migrated
+
+ID: 252
+  Code    : chest_20-24
+  Name    : Runic Chest
+  Source  : Lvl 20-24 Raid Runic squad
+  Points  : 10
+  Status  : migrated
+
+ID: 253
+  Code    : chest_25-29
+  Name    : Runic Chest
+  Source  : Lvl 25-29 Raid Runic squad
+  Points  : 15
+  Status  : migrated
+
+ID: 254
+  Code    : chest_30-34
+  Name    : Runic Chest
+  Source  : Lvl 30-34 Raid Runic squad
+  Points  : 20
+  Status  : migrated
+
+ID: 255
+  Code    : chest_35-39
+  Name    : Runic Chest
+  Source  : Lvl 35-39 Raid Runic squad
+  Points  : 25
+  Status  : migrated
+
+ID: 256
+  Code    : chest_40-44
+  Name    : Runic Chest
+  Source  : Lvl 40-44 Raid Runic squad
+  Points  : 35
+  Status  : migrated
+
+ID: 257
+  Code    : chest_45
+  Name    : Runic Chest
+  Source  : Lvl 45 Raid Runic squad
+  Points  : 40
+  Status  : migrated
+
+ID: 258
+  Code    : chest
+  Name    : Nisse Chest
+  Source  : Nisse
+  Points  : 25
+  Status  : migrated
+
+ID: 259
+  Code    : chest
+  Name    : Rotwood Queen Chest
+  Source  : Rotwood Queen
+  Points  : 10
+  Status  : migrated
+
+ID: 260
+  Code    : store
+  Name    : Forest Chest
+  Source  : Seasonal Store
+  Points  : 500
+  Status  : migrated
+
+ID: 261
+  Code    : bank
+  Name    : Golden Chest
+  Source  : Bank
+  Points  : 375
+  Status  : migrated
+
+ID: 262
+  Code    : bank
+  Name    : Precious Chest
+  Source  : Bank
+  Points  : 625
+  Status  : migrated
+
+ID: 263
+  Code    : bank
+  Name    : Bronze Chest
+  Source  : Bank
+  Points  : 35
+  Status  : migrated
+
+ID: 264
+  Code    : bank
+  Name    : Conqueror's Chest
+  Source  : Bank
+  Points  : 10
+  Status  : migrated
+
+ID: 265
+  Code    : bank
+  Name    : Magic Chest
+  Source  : Bank
+  Points  : 1000
+  Status  : migrated
+
+ID: 266
+  Code    : bank
+  Name    : Silver Chest
+  Source  : Bank
+  Points  : 125
+  Status  : migrated
+
+ID: 267
+  Code    : bank
+  Name    : Wooden Chest
+  Source  : Bank
+  Points  : 20
+  Status  : migrated
+
+ID: 268
+  Code    : chest
+  Name    : Governor's Chest
+  Source  : Story
+  Points  : 1
+  Status  : migrated
+
+ID: 269
+  Code    : crypt_10
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 10
+  Points  : 8
+  Status  : migrated
+
+ID: 270
+  Code    : crypt_15
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 15
+  Points  : 60
+  Status  : migrated
+
+ID: 271
+  Code    : crypt_20
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 20
+  Points  : 225
+  Status  : migrated
+
+ID: 272
+  Code    : crypt_25
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 25
+  Points  : 450
+  Status  : migrated
+
+ID: 273
+  Code    : crypt_30
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 30
+  Points  : 700
+  Status  : migrated
+
+ID: 274
+  Code    : crypt_35
+  Name    : Tartaros Chest
+  Source  : Tartaros Crypt Level 35
+  Points  : 1000
+  Status  : migrated
+
+ID: 275
+  Code    : tournament
+  Name    : Prepared Alchemical Cauldron
+  Source  : Alchemy Tournament
+  Points  : 25
+  Status  : migrated
+
+ID: 276
+  Code    : authority_rush
+  Name    : Chest of Authority
+  Source  : Authority Rush Tournament
+  Points  : 10
+  Status  : migrated
+
+ID: 277
+  Code    : clash_for_the_throne
+  Name    : Golden Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 375
+  Status  : migrated
+
+ID: 278
+  Code    : clash_for_the_throne
+  Name    : Wooden Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 5
+  Status  : migrated
+
+ID: 279
+  Code    : clash_for_the_throne
+  Name    : Magic Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 1000
+  Status  : migrated
+
+ID: 280
+  Code    : clash_for_the_throne
+  Name    : Bronze Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 35
+  Status  : migrated
+
+ID: 281
+  Code    : clash_for_the_throne
+  Name    : Precious Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 625
+  Status  : migrated
+
+ID: 282
+  Code    : clash_for_the_throne
+  Name    : Silver Chest
+  Source  : Clash for the Throne Tournament
+  Points  : 125
+  Status  : migrated
+
+ID: 283
+  Code    : event
+  Name    : Fenrir's Chest
+  Source  : Ragnarok Event
+  Points  : 0
+  Status  : migrated
+
+ID: 284
+  Code    : tournament
+  Name    : Great Hunt Chest
+  Source  : The Great Hunt Tournament
+  Points  : 0
+  Status  : migrated
+
+ID: 285
+  Code    : chest
+  Name    : Union Chest
+  Source  : Union of Triumph Clan Ranking
+  Points  : 0
+  Status  : migrated
+
+ID: 286
+  Code    : event
+  Name    : Olympus Chest
+  Source  : Event Trials of Olympus
+  Points  : 100
+  Status  : migrated
+
+ID: 287
+  Code    : event
+  Name    : Olympus Elite Chest
+  Source  : Event Trials of Olympus
+  Points  : 0
+  Status  : migrated
+
+ID: 288
+  Code    : chest
+  Name    : Pacified Mimic Chest
+  Source  : Mimic Chest
+  Points  : 25
+  Status  : migrated
+
+ID: 289
+  Code    : chest
+  Name    : Union Chest
+  Source  : Union of Triumph Personal Reward
+  Points  : 50
+  Status  : migrated
+

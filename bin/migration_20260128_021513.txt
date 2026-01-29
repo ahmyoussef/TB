@@ -1,0 +1,5 @@
+Fecha: 2026-01-28 02:15:13.123766
+Base de datos: ../data/databases/TB_chests_clans.db
+Registros: 288
+Errores: 288
+Log guardado en: migration_20260128_021513.txt

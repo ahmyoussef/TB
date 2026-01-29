@@ -1,0 +1,4 @@
+v2.0-> programa original de LadyCara "chest-counter-17-11-2025"
+v2.1-> adicion de captura de time left como informacion del cofre
+v2.2-> cambio de motor OCR: Tesseract por EasyOCR
+v2.3-> eliminacion de las carpetas de trabajo (working y final) y implementacion para guardar los registros en la base de datos

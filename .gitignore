@@ -1,0 +1,70 @@
+# .gitignore para TB Chest Counter Project
+# =========================================
+
+# Directorios de configuración y datos
+/logs/
+/config/
+/data/
+/working-c1/
+/working-c2/
+/working-c3/
+/working-c4/
+/archive-c1/
+/archive-c2/
+/archive-c3/
+/archive-c4/
+/final/
+/_Install/
+/.claude/
+
+# Archivos temporales y logs
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archivos específicos del proyecto
+TBCalibration_Screenshot.png
+DEBUG_time_ocr.png
+
+# Directorios de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+.vscode/
+.idea/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de bases de datos (excepto si quieres versionarlos)
+*.db
+*.sqlite
+*.sql
+*.sqlite3
+
+# Archivos de capturas de pantalla
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.afdesign
+
+# Archivos CSV temporales
+*temp.csv
+*_backup.csv
+
+# Logs del programa
+ocr_corrections.log
+missing_timeleft.log
+
+# Archivos de PowerShell/Batch
+*.ps1~
+*.bat~

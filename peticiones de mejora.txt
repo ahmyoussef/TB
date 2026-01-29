@@ -1,3 +1,737 @@
+Target AI: ChatGPT
+
+Prompt Style: DETAIL.
+
+Estoy jugando a total battle en pc, y me gustaria que me ayudaras a mejorar un programa de conteo de cofres o chest tacker en el juego Total batlle. 
+
+El actual proyecto tiene esta estructura
+
+C:\TB\
+   ├── bin\
+   │     tb.py                      # PROGRAMA PRINCIPAL/backend
+   │     tb-c1-en.ps1               # script para lanzar tb.py para el clan 1 │
+   │     tb-c1-en.ps2               # script para lanzar tb.py para el clan 2 │
+   │     tb-c1-en.ps3               # script para lanzar tb.py para el clan 3 │
+   │     tb-c1-en.ps3               # script para lanzar tb.py para el clan 3 │
+   │     TBDatabase.py              # logica de la bd
+   ├── config\
+   │      config-c1.cfg             # archivo de configuracion para el clan 1 
+   │      config-c2.cfg             # archivo de configuracion para el clan 2 
+   │      config-c3.cfg             # archivo de configuracion para el clan 3 
+   │      config-c4.cfg             # archivo de configuracion para el clan 4 
+   │      players.c1.csv            # Listado de jugadores del clan 1 
+   │      players.c2.csv            # Listado de jugadores del clan 2 
+   │      players.c3.csv            # Listado de jugadores del clan 3 
+   │      players.c4.csv            # Listado de jugadores del clan 4 
+   │      data_quality.csv
+   │      fix_ocr.csv
+   │      fixwords.csv
+   │      scores-c1/...c4.csv      # archivo de puntuacion para cada clan, 1-4 
+   │
+   ├── archive-c1\
+   │       TB_Chests__[nam clan]_[date]_DATA.archive # fichero del registro de los cofres por cada dia/ una especie de backup 
+   ├── archive-c2\
+   ├── archive-c3\
+   ├── archive-c4\
+   ├── working-c1\
+   │       TB_Capture_Clean_[nam clan]_[timestamp].txt # fichero del registro de los cofres por cada sesion/ejecucion de tb
+   │       TB_Capture_RAW_[nam clan]_[timestamp].txt # fichero sin limpieza (incluye errores, sin parseo) del registro de los cofres por cada sesion/ejecucion de tb
+   ├── working-c2\
+   ├── working-c3\
+   ├── working-c4\
+   ├── data\
+   │       captured-datas-c1/c4.txt   # fichero de todos los registro de los cofres generados/capturados = union de los ficheros TBCAPTURE_Clean
+   │       total-datas-c1/c4.txt
+   ├── final\
+
+el programa principal, tb.py tiene esta logica/flujo:
+ESTRUCTURA GENERAL:
+El programa tb.py es un sistema de captura OCR para registrar cofres del juego Total Battle. Funciona en 3 modos principales:
+
+CALIBRATION MODE (--calibrate)
+CAPTURE MODE (--capture)
+PROCESS MODE (--process)
+
+
+FLUJO PRINCIPAL:
+
+INICIO
+  │
+  ├─> Parsear argumentos de línea de comandos
+  │
+  ├─> Cargar configuración desde config.cfg (TBConfig)
+  │
+  └─> Determinar modo de ejecución:
+       │
+       ├─> [--calibrate] → TBCalibration.run()
+       │
+       ├─> [--capture]   → TBCapture.run()
+       │
+       └─> [--process]   → TBProcess.run()
+
+==MODO 1: CALIBRATION (--calibrate) ===
+Propósito: Configurar coordenadas de pantalla para captura OCR
+
+CALIBRATION MODE
+  │
+  ├─> Mostrar menú:
+  │    [1] Calibrar área de texto (x1,y1,x2,y2)
+  │    [2] Calibrar botón OPEN (mx,my)
+  │    [3] Calibrar area de seccion TIME LEFT OPEN (x1,y1,x2,y2)-> falta implementar de forma automatica esta parte. No la implementes ahora
+  │
+  ├─> [Opción 1] Calibrar área de captura:
+  │    │
+  │    ├─> Usuario posiciona mouse en esquina SUPERIOR IZQUIERDA
+  │    ├─> Guardar coordenadas (x1, y1)
+  │    ├─> Usuario posiciona mouse en esquina INFERIOR DERECHA
+  │    ├─> Guardar coordenadas (x2, y2)
+  │    ├─> Capturar screenshot de prueba
+  │    ├─> Ejecutar OCR sobre screenshot
+  │    ├─> Mostrar texto capturado para validación
+  │    └─> Guardar imagen: TBCalibration_Screenshot.png
+  │
+  └─> [Opción 2] Calibrar botón OPEN:
+       │
+       ├─> Usuario posiciona mouse sobre botón "Open"
+       ├─> Guardar coordenadas (mx, my)
+       ├─> Ejecutar click de prueba (opcional)
+       └─> Confirmar coordenadas.
+Resultado: Usuario debe copiar las coordenadas a config.cfg manualmente.
+
+== MODO 2: CAPTURE (--capture) ===
+Propósito: Capturar informacion de cofres de la pantalla del juego usando OCR + clicks automatizados
+
+CAPTURE MODE - Inicio
+  │
+  ├─> Crear instancias de validadores:
+  │    ├─> TBPlayer (validar nombres de jugadores)
+  │    ├─> TBChest (validar nombres de cofres)
+  │    ├─> TBSource (validar fuentes: Crypt, Bank, etc.)
+  │    ├─> TBFixOCR (correcciones conocidas de OCR)
+  │    └─> TBTime (parsear "Time left")
+  │
+  ├─> Abrir archivos de salida:
+  │    ├─> TB_Capture_Clean_CLAN_TIMESTAMP.txt (datos limpios)
+  │    ├─> TB_Capture_RAW_CLAN_TIMESTAMP.txt (texto OCR crudo)
+  │    ├─> captured-datas.txt (acumulativo)
+  │    └─> total-datas.txt (acumulativo total)
+  │
+  ├─> Preguntar al usuario: "¿Cuántos cofres capturar?"
+  │    └─> Usuario ingresa número (ej: 20)
+  │
+  └─> BUCLE de captura (hasta completar N cofres):
+       │
+       ├─> 1. CAPTURAR PANTALLA
+       │    │
+       │    ├─> ImageGrab.grab(x1, y1, x2, y2)
+       │    ├─> Convertir a escala de grises
+       │    └─> Ejecutar Tesseract OCR
+       │
+       ├─> 2. VALIDAR Y PARSEAR TEXTO
+       │    │
+       │    ├─> Dividir texto en líneas
+       │    ├─> Guardar texto RAW en archivo
+       │    │
+       │    ├─> INTENTAR PARSEO CON REGEX:
+       │    │    │
+       │    │    └─> Buscar patrón:
+       │    │         "ChestName\nFrom: Player\nSource: Location\nTime left: X h Y m"
+       │    │
+       │    ├─> SI FALLA REGEX → MÉTODO FALLBACK (línea por línea):
+       │    │    │
+       │    │    ├─> Detectar líneas multilinea mal formateadas
+       │    │    ├─> Combinar texto: buscar "From" y "Source"
+       │    │    ├─> Reconstruir formato esperado
+       │    │    │
+       │    │    └─> Procesar en grupos de 4 líneas:
+       │    │         │
+       │    │         ├─> Línea 1: Nombre del cofre
+       │    │         │    └─> chest_def.validate(line)
+       │    │         │
+       │    │         ├─> Línea 2: "From: PlayerName"
+       │    │         │    ├─> Extraer nombre del jugador
+       │    │         │    ├─> player_def.validate(player)
+       │    │         │    │    ├─> ¿Existe en players.csv?
+       │    │         │    │    ├─> ¿Fuzzy match? (similitud > 75%)
+       │    │         │    │    └─> ¿Es alias conocido?
+       │    │         │    └─> Si no existe: preguntar al usuario
+       │    │         │
+       │    │         ├─> Línea 3: "Source: Location"
+       │    │         │    └─> source_def.validate(source)
+       │    │         │         ├─> Corregir errores OCR comunes
+       │    │         │         └─> Validar formato
+       │    │         │
+       │    │         └─> Línea 4: "Time left: X h Y m"
+       │    │              └─> time_parser.parse_time_left(line)
+       │    │                   ├─> Buscar patrón: \d+ h \d+ m
+       │    │                   ├─> SI hora >= 80 y hora <= 89:
+       │    │                   │    └─> hora = hora - 80 (corrección icono reloj)
+       │    │                   ├─> Validar: 0 <= hora <= 19
+       │    │                   └─> Validar: 0 <= minutos <= 59
+       │    │
+       │    └─> Almacenar en self.records[]:
+       │         [chest, player, source, time_left]
+       │
+       ├─> 3. GUARDAR REGISTROS
+       │    │
+       │    └─> Para cada registro válido:
+       │         ├─> Escribir en TB_Capture_Clean (working)
+       │         ├─> Escribir en captured-datas.txt (acumulativo)
+       │         └─> Escribir en total-datas.txt (acumulativo)
+       │
+       ├─> 4. EJECUTAR CLICKS AUTOMÁTICOS
+       │    │
+       │    └─> Para cada cofre capturado:
+       │         ├─> pyautogui.click(mx, my)
+       │         ├─> Esperar clickWait milisegundos
+       │         └─> Incrementar contador de clicks
+       │
+       └─> ¿Se completaron N cofres? → FIN BUCLE
+Resultado:
+Archivos TXT con registros limpios en /working/
+Datos acumulados en /data/captured-datas.txt
+Cofres abiertos automáticamente en el juego
+
+
+=== MODO 3: PROCESS (--process) ===
+Propósito: Procesar datos capturados, calcular puntuaciones, generar resúmenes
+PROCESS MODE - Inicio
+  │
+  ├─> Determinar fecha de procesamiento:
+  │    ├─> --date YYYY-MM-DD (específica)
+  │    ├─> --start_date / --end_date (rango)
+  │    └─> Por defecto: fecha actual
+  │
+  ├─> Cargar configuración de puntuaciones (scores-xxx.csv)
+  │
+  └─> Ejecutar sub-procesos según argumentos:
+       │
+       ├─> [--eod] END OF DAY PROCESSING
+       │    │
+       │    ├─> 1. CORRECCIONES PRE-PROCESAMIENTO
+       │    │    │
+       │    │    ├─> Detectar cofres épicos (Jack Reaper Chest + Pumpkin)
+       │    │    │    └─> Renombrar "Pumpkin" → "Epic Jack Reaper Chest"
+       │    │    │
+       │    │    ├─> Aplicar correcciones de fixwords.csv:
+       │    │    │    └─> Buscar/reemplazar frases mal escritas por OCR
+       │    │    │
+       │    │    └─> Preguntar: "¿Olympus/Ragnarok activo?"
+       │    │         └─> Si NO: renombrar cofres de evento a "Bad Hermes/Jormungandr"
+       │    │
+       │    ├─> 2. PROCESAR ARCHIVO DE ENTRADA
+       │    │    │
+       │    │    └─> Leer captured-datas.txt línea por línea (grupos de 4):
+       │    │         │
+       │    │         ├─> Línea 1: Chest
+       │    │         ├─> Línea 2: From: Player
+       │    │         ├─> Línea 3: Source: Location
+       │    │         ├─> Línea 4: Time left: X h Y m
+       │    │         │
+       │    │         ├─> Calcular puntuación:
+       │    │         │    │
+       │    │         │    └─> score_def.calculate(source, chest, player)
+       │    │         │         ├─> Buscar source en scores-xxx.csv
+       │    │         │         ├─> Casos especiales:
+       │    │         │         │    ├─> "Cursed Citadel Chest" → extraer nivel
+       │    │         │         │    └─> "Bank" → intercambiar chest/source
+       │    │         │         └─> Retornar puntuación
+       │    │         │
+       │    │         └─> Escribir a archivo FINAL:
+       │    │              YYYY-MM-DD_TB_Chests_CLAN_FINAL.txt
+       │    │              Formato CSV: DATE,PLAYER,SOURCE,CHEST,SCORE,CLAN,TIME_LEFT
+       │    │
+       │    └─> Archivar archivo procesado:
+       │         └─> Copiar captured-datas.txt → /archive/TB_Chests_CLAN_DATE_DATA.archive
+       │
+       ├─> [--summary] GENERAR RESUMEN DE JUGADORES
+       │    │
+       │    ├─> Leer todos los archivos FINAL en /data/
+       │    │
+       │    ├─> Acumular por jugador:
+       │    │    ├─> Total de puntos
+       │    │    └─> Total de cofres
+       │    │
+       │    ├─> Ordenar por puntuación (mayor a menor)
+       │    │
+       │    ├─> Escribir resumen:
+       │    │    └─> YYYY-MM-DD_TB_PlayerSummary_CLAN_FINAL.txt
+       │    │         Formato: PLAYER,SCORE,CHEST
+       │    │
+       │    └─> Crear copia con timestamp de captured-datas.txt
+       │
+       └─> [--citadels] GENERAR RESUMEN DE CIUDADELAS
+            │
+            ├─> Filtrar solo registros de Citadels
+            │
+            ├─> Clasificar por nivel y tipo:
+            │    ├─> Elven Citadel: 10, 15, 20, 25, 30
+            │    └─> Cursed Citadel: 20, 25
+            │
+            ├─> Contar por jugador y nivel
+            │
+            └─> Escribir resumen:
+                 └─> TB_CitadelSummary_CLAN_FINAL.txt
+                      Formato: PLAYER,ELVEN_10,ELVEN_15,...,TOTAL
+Resultado:
+
+Archivos FINAL procesados con puntuaciones
+Resúmenes por jugador
+Resúmenes de ciudadelas
+Archivos archivados
+
+
+TB/
+├── .gitignore      
+├── bin/
+│   └── data/databases/ (al final se gaurda aqui la base de datos, pero en un futuro tendre que poder a la carpeta DATA)
+│       └── TB_chests_clans.db
+│   ├── tb.py
+│   └── TBDatabase_manager.py
+├── config/           
+│   ├── config-c1.cfg
+│   ├── config-c2.cfg
+│   ├── players-c1.csv
+│   ├── scores-hlo.csv
+│   └── ...
+├── data/           
+│   └── databases/
+│       └── TB_chests_clans.db
+├── working/        
+├── archive/      
+├── final/        
+└── README.md
+----
+
+Type,Name,Source,Points
+*,*,Bad Hermes,0
+*,*,Abyss Guardian,10
+Ancient Squad,Golden Guardian Legendary Chest,Epic Ancient Squad,25
+Ancients Treasure,Sapphire Chest,Level 25-29 Vault of the Ancients,20
+Arena,Gladiator's Chest,Arena,1
+Clan Wealth,Uncommon Chest of Wealth,Clan Wealth,0
+Common Crypt,Gnome Workshop Chest,Level 10 Crypt,5
+Common Crypt,Bone Chest,Level 20 Crypt,80
+Common Crypt,Sand Chest,Level 20 Crypt,80
+Common Crypt,Stone Chest,Level 20 Crypt,80
+Common Crypt,Gnome Workshop Chest,Level 20 Crypt,80
+Cursed Citadel,Cursed Citadel Chest,Level 20 Citadel,60
+Elven Citadel,Elven Citadel Chest,Level 25 Citadel,140
+Epic Crypt,Ancient Bastion Chest,Level 15 Epic Crypt,60
+Epic Crypt,Trillium Chest,Level 15 Epic Crypt,60
+Epic Crypt,Turtle Chest,Level 15 Epic Crypt,60
+Epic Crypt,Harpy Chest,Level 15 Epic Crypt,60
+Epic Crypt,Scorpion Chest,Level 15 Epic Crypt,60
+Epic Crypt,Barbarian Chest,Level 15 Epic Crypt,60
+Epic Crypt,Titansteel Chest,Level 15 Epic Crypt,60
+Epic Crypt,White Wood Chest,Level 15 Epic Crypt,60
+Epic Crypt,Cobalt Chest,Level 15 Epic Crypt,60
+Epic Crypt,House of Horrors Chest,Level 15 Epic Crypt,60
+Epic Crypt,Priest's Chest,Level 15 Epic Crypt,60
+Epic Crypt,Abandoned Chest,Level 15 Epic Crypt,60
+Epic Crypt,Ancient Warrior's Chest,Level 15 Epic Crypt,60
+Epic Crypt,Minotaur Chest,Level 15 Epic Crypt,60
+Epic Crypt,Chest of the Cursed,Level 15 Epic Crypt,60
+Epic Crypt,Braided Chest,Level 15 Epic Crypt,60
+Epic Crypt,Scarab Chest,Level 15 Epic Crypt,60
+Epic Squad,Chimera Chest,Epic Chimera Squad,100
+Epic Squad,Jörmungandr's Chest,Epic Jörmungandr Squad,500
+Heroic Monster,Barbarian Chest,Level 19 Heroic Monster,60
+Heroic Monster,Cursed Chest,Level 38 Heroic Monster,475
+Heroic Monster,Inferno Chest,Level 45 Heroic Monster,1000
+Rare Crypt,Rare Dragon Chest,Level 25 Rare Crypt,360
+Rare Crypt,Rare Dragon Chest,Level 30 Rare Crypt,600
+Seasonal Event,Nisse Chest,Nisse,25
+Seasonal Event,Rotwood Queen Chest,Rotwood Queen,10
+Seasonal Store,Forest Chest,Seasonal Store,500
+Store,Golden Chest,Bank,375
+Store,Precious Chest,Bank,625
+Store,Bronze Chest,Bank,35
+Store,Conqueror's Chest,Bank,10
+Store,Magic Chest,Bank,1000
+Store,Silver Chest,Bank,125
+Store,Wooden Chest,Bank,20
+
+
+===== CLASES PRINCIPALES =====
+1. TBConfig
+- Carga config.cfg
+- Parsea parámetros: rutas, coordenadas, clanes
+- Valida configuración
+2. TBScreen
+- get_screenshot(x1,y1,x2,y2) → captura región
+- get_grayscale(img) → convierte a B&N
+- ocr_core(img) → ejecuta Tesseract OCR
+- ocr_time_specialized - OCR SUPER especializado solo para time left con preprocesamiento agresivo
+3. TBTime (NUEVA)
+- extrae "X h Y m"
+- Corrección automática: 80-89h → 0-9h
+- Validación de rangos: 0-19h, 0-59m
+4. TBPlayer
+- Carga players.csv
+- validate(player, line):
+  ├─> Fuzzy matching (similitud > 75%)
+  ├─> Búsqueda en alias
+  └─> Interacción con usuario si desconocido
+- save() → guarda nuevos jugadores
+5. TBChest
+- Carga data_quality.csv
+- validate(chest):
+  ├─> Corrige errores OCR comunes
+  ├─> Mapea nombres parciales a nombres completos
+  └─> Normaliza capitalización
+6. TBSource
+- validate(source, line):
+  ├─> Detecta formato "Source: Location"
+  ├─> Completa palabras truncadas (Cr → Crypt)
+  └─> Normaliza nombres
+7. TBScore
+- Carga scores-xxx.csv
+- calculate(source, chest, player, line):
+  ├─> Mapea source → puntuación
+  ├─> Maneja casos especiales (Citadels, Bank)
+  └─> Retorna score
+8. TBFixOCR
+- Carga fix_ocr.csv
+- fix(line1, line2) → corrige errores de 2 líneas
+9. TBCalibration
+- run(config) → modo calibración interactivo
+10. TBCapture
+- run() → bucle principal de captura
+- validate_capture(capture, count) → parsea OCR
+- save_records() → guarda registros
+11. TBProcess
+- run() → orquesta procesamiento
+- process_file() → procesa archivo individual
+- run_chest_summary() → genera resumen de jugadores
+- run_citadel_summary() → genera resumen de ciudadelas
+
+===== FORMATO DE DATOS =====
+Captura (4 líneas por registro):
+Gnome Workshop Chest
+From : Yozahm9
+Source : Level 10 Crypt
+Time left : 5h 30m
+
+
+===== CORRECCIONES OCR AUTOMÁTICAS =====
+Time Left:
+Input OCR:  "Time left: 85 h 30 m"  (icono reloj → "8")
+Corrección: "5h 30m"                 (85 - 80 = 5)
+Chest Names:
+"lven Citadel" → "Elven Citadel"
+"Ches" → "Chest"
+"Cryp" → "Crypt"
+Player Names:
+Fuzzy match: "Y0zahm9" → "Yozahm9" (similitud > 75%)
+Sources:
+"Ba" → "Bank"
+"Cryp" → "Crypt"
+"Citade" → "Citadel"
+
+===== FLUJO DE ARCHIVOS =====
+CAPTURA:
+  ImageGrab → OCR → Validación → captured-datas.txt
+                                ↓
+                           working/*.txt (timestamped)
+
+PROCESAMIENTO:
+  captured-datas.txt → Correcciones → Puntuaciones → FINAL.txt
+                                                        ↓
+                                                   archive/*.archive
+
+RESÚMENES:
+  FINAL.txt → Agregación → PlayerSummary.txt
+                        → CitadelSummary.txt
+
+Tu misión: refactorizar y actualizar el script tb.py de contador de cofres del clan Total Battle. 
+
+PASO 0 
+— ANTES DE GENERAR CUALQUIER CÓDIGO: Pide al usuario que suba los siguientes archivos del proyecto (nombres exactos de los archivos, si están disponibles): 
+  - bin/tb.py <-- script principal (obligatorio) 
+  - config/config.cfg <-- archivo de configuración (obligatorio) 
+  - config/players.csv <-- alias de los jugadores (obligatorio) 
+  - config/scores-hlo.csv <-- tabla de puntuaciones (si existe) 
+
+PASO 1 
+— VALIDACIÓN DE ARCHIVOS (realice estas comprobaciones en los archivos recibidos; no los modifique todavía): 
+  1. Confirme que tb.py contiene las clases TBConfig, TBScreen, TBFixOCR, TBPlayer, TBChest, TBSource, TBCalibration, TBCapture y TBProcess tal y como se describe. 
+  2. Confirme que config.cfg contiene las coordenadas de calibración x1, y1, x2, y2 y la ruta a Tesseract (si se utiliza). 
+  3. Confirme que existen archivos TXT de muestra e indique si son registros de 3 líneas o de 4/5 líneas. 
+  4. Verifique que las capturas de pantalla sean utilizables (no capturas de pantalla de otras interfaces de usuario). Conviértalas a escala de grises para una rápida comprobación visual. 
+
+PASO 2
+— PLAN DE ACTUALIZACIÓN:
+  A. Quiero que añadir el guardado de los registros en una base de datos. la base de datos (TB_chests_clans.db, en la carpeta data/databases) quiero que tenga estas tablas:
+
+ # Tabla 1: clans
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS clans (
+                    id_clan INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name_clan TEXT NOT NULL UNIQUE,
+                    name_abbreviation TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabla 2: players_ocr (INCLUYE id_clan)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS players_ocr (
+                    id_player INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_clan INTEGER NOT NULL,
+                    name_player TEXT NOT NULL,
+                    alias1_OCR TEXT,
+                    alias2_OCR TEXT,
+                    alias3_OCR TEXT,
+                    alias4_OCR TEXT,
+                    alias5_OCR TEXT,
+                    alias6_OCR TEXT,
+                    alias7_OCR TEXT,
+                    alias8_OCR TEXT,
+                    status TEXT DEFAULT 'active',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_clan) REFERENCES clans(id_clan) ON DELETE CASCADE,
+                    UNIQUE(id_clan, name_player)
+                )
+            """)
+            
+            # Tabla 3: clan_members (INCLUYE id_clan)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS clan_members (
+                    id_member INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_clan INTEGER NOT NULL,
+                    id_player INTEGER NOT NULL,
+                    Might INTEGER DEFAULT 1,
+                    member_role TEXT,
+                    Hero_Level INTEGER DEFAULT 1,
+                    Guards_Level INTEGER DEFAULT 1,
+                    Monsters_Level INTEGER DEFAULT 3,
+                    Specialists_Level INTEGER DEFAULT 1,
+                    Engineers_corps_Level INTEGER DEFAULT 3,
+                    Gold_Pass BOOLEAN DEFAULT 0,
+                    status BOOLEAN DEFAULT 1,
+                    joined_date DATE DEFAULT CURRENT_DATE,
+                    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_clan) REFERENCES clans(id_clan) ON DELETE CASCADE,
+                    FOREIGN KEY (id_player) REFERENCES players_ocr(id_player) ON DELETE CASCADE,
+                    UNIQUE(id_clan, id_player)
+                )
+            """)
+            
+            # Tabla 4: chest_definitions (TABLA PRINCIPAL)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chest_definitions (
+                    id_chest_def INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chest_type TEXT,
+                    chest_name TEXT NOT NULL,
+                    chest_source TEXT NOT NULL,
+                    point_value INTEGER NOT NULL,
+                    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(chest_name, chest_source)
+                )
+            """)
+            
+            # Tabla 5: capture_sessions (INCLUYE id_clan)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS capture_sessions (
+                    id_session INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    id_clan INTEGER NOT NULL,
+                    id_user INTEGER,
+                    total_chests_captured INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'pending',
+                    FOREIGN KEY (id_clan) REFERENCES clans(id_clan) ON DELETE CASCADE,
+                    FOREIGN KEY (id_user) REFERENCES players_ocr(id_player) ON DELETE SET NULL
+                )
+            """)
+            
+            # Tabla 6: chest_register (REGISTRO PRINCIPAL - INCLUYE id_clan)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chest_register (
+                    id_register INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_clan INTEGER NOT NULL,
+                    id_player INTEGER NOT NULL,
+                    id_chest_def INTEGER NOT NULL,
+                    time_left TEXT,
+                    obtained_at DATETIME,
+                    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    id_session INTEGER,
+                    FOREIGN KEY (id_clan) REFERENCES clans(id_clan) ON DELETE CASCADE,
+                    FOREIGN KEY (id_player) REFERENCES players_ocr(id_player) ON DELETE RESTRICT,
+                    FOREIGN KEY (id_chest_def) REFERENCES chest_definitions(id_chest_def) ON DELETE RESTRICT,
+                    FOREIGN KEY (id_session) REFERENCES capture_sessions(id_session) ON DELETE SET NULL
+                )
+            """)
+            
+            # Tabla 7: ocr_corrections_history (AUDITORÍA)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ocr_corrections_history (
+                    id_correction INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_session INTEGER,
+                    field_type TEXT NOT NULL,
+                    ocr_value TEXT NOT NULL,
+                    corrected_value TEXT NOT NULL,
+                    correction_source TEXT,
+                    corrected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_session) REFERENCES capture_sessions(id_session) ON DELETE SET NULL
+                )
+            """)
+            
+            # Tabla 8: player_ocr_changes (AUDITORÍA)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS player_ocr_changes (
+                    id_audit INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_player INTEGER NOT NULL,
+                    field_changed TEXT NOT NULL,
+                    old_value TEXT,
+                    new_value TEXT,
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    changed_by TEXT DEFAULT 'system',
+                    FOREIGN KEY (id_player) REFERENCES players_ocr(id_player) ON DELETE CASCADE
+                )
+            """)
+            
+            # Tabla 9: reward_captures
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reward_captures (
+                    id_capture INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_chest_register INTEGER NOT NULL,
+                    image_path TEXT NOT NULL,
+                    capture_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    processed INTEGER DEFAULT 0,
+                    FOREIGN KEY (id_chest_register) REFERENCES chest_register(id_register) ON DELETE CASCADE
+                )
+            """)
+            
+            # Tabla 10: reward_categories
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reward_categories (
+                    id_category INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category_name TEXT NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabla 11: reward_definitions
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reward_definitions (
+                    id_reward_def INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_category INTEGER NOT NULL,
+                    reward_name TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_category) REFERENCES reward_categories(id_category),
+                    UNIQUE(reward_name, id_category)
+                )
+            """)
+            
+            # Tabla 12: ml_ocr_prediction_reward
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ml_ocr_prediction_reward (
+                    id_prediction INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_chest_register INTEGER NOT NULL,
+                    id_reward_def INTEGER,
+                    ml_icon_prediction TEXT,
+                    ml_icon_confidence REAL DEFAULT 0.0,
+                    ocr_upper_text TEXT,
+                    ocr_upper_confidence REAL DEFAULT 0.0,
+                    ocr_lower_text TEXT,
+                    ocr_lower_confidence REAL DEFAULT 0.0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_chest_register) REFERENCES chest_register(id_register) ON DELETE CASCADE,
+                    FOREIGN KEY (id_reward_def) REFERENCES reward_definitions(id_reward_def) ON DELETE SET NULL
+                )
+            """)
+
+   B. En una siguiente etapa de implementacion, quiero que eliminar la generacion de las carpetas/y sus respectivos archivos que se guardan en wotking-c1-/4 y archive-c1/4. 
+Sistema operativo: ¿Windows 10/11? tengo w10
+Versión de Python aproximada: ¿3.9 / 3.10 / 3.11? v3.11
+idioma ingles
+
+Cualquier duda que tengas, preguntamelo antes. 
+
+
+Con esto cierro el prompt al 100%.
+
+-------
+# database_manager.py
+PROJECT_ROOT = Path(r“C:\_ChestInspectorTB”)
+from src.chestinspector.core.config_loader import config
+
+# tb.py (current system)
+# Uses ../config/, ../data/, ../working-c1/
+```
+
+These are **incompatible** — different project structures.
+
+### **3. Schema Validation Needed**
+
+`database_manager.py` has all 12 tables but:
+- Missing `id_clan` foreign key in some INSERT statements
+- Cache warming might fail on empty DB
+- No integration hooks for `tb.py`
+
+---
+
+# 🚨 MANDATORY CLARIFICATION REQUIRED
+
+Before proceeding to **STEP 2 (Database Design Review)**, you must answer:
+
+## **Question 1: Database Module Identity**
+
+Which is correct?
+
+**Option A:** `database_manager.py` is from a **separate project** (ChestInspectorTB)  
+→ I should design `bin/TBDatabase.py` **from scratch** for the `tb.py` system
+
+**Option B:** `database_manager.py` is the **intended module** for `tb.py`  
+→ I should **refactor it** to match `tb.py` requirements and rename to `TBDatabase.py`
+
+## **Question 2: Project Root**
+
+What is the **actual** project directory structure?
+```
+Option A (tb.py style):
+Chest-Counter/
+  ├── bin/tb.py
+  ├── config/
+  ├── data/
+  └── working-c1/
+
+Option B (database_manager.py style):
+C:\_ChestInspectorTB/
+  ├── src/chestinspector/
+  └── data/databases/
+
+
+------
+C:\TBChest-Tracker\
+├── bin\
+│   ├── main.py                # Programa principal (flujo / entrypoint)
+│   ├── tb-launcher.ps1        # Script launcher PowerShell
+│   ├── tb_gui_main.py         # GUI to manage app and show results/statistics
+│   ├── tb_web_app.py          # web page to show resutls/statistics
+│   ├── ChestDataProcessor\    # Modularizacion del tb.py para que haga todas las funciones
+│   │     ├── TB_OCR_engine.py # AQUI INCLUIR TODO LO RELACIOANDO CON EL OCR: GESTION DE PARAMETROS DE CALIBRACION DE LA PANTALLA, CAPTURA/FOTO DE LAS REGIONES EN DE PANTALLA (INCLUIR LA LOGICA QUE EN TBCONFIG, TBSCREEN, TBFIZXOCR)
+│   │     ├── TB_validation.py #PARSEO DE TEXTO DETECTADO POR EL OCR (TBCHEST, TBSOURCE, TBPLAYER, TBTIMELEFT)
+│   │     ├── TB_capture.py    # Captura limpia de los datos del cofres para guardarlos directamente en la base de datos (TBCAPTURE), a traves del programa TB_database_manager.py 
+│   │     ├── TB_database_manager.py # = TBDatabase.py, TODO lo relacionado con la lógica SQL o BD, trasladar aqui el gaurdado de las sessiones de captura (Gestor de la conexión a la BD; gestion esquema SQL de la BD; creacion de la bd por primera vez y creacion de las tablas; Funciones de acceso a datos (CRUD) ...)
+│   │     ├── TB_reports.py   # manejo de la Puntuación (TBScore mejorado) y generacion de informes desde sql
+│
+├── config\
+│     config.cfg
+│     players-[name clan].csv
+│     players_power.csv
+│     chest_scores.csv # antiguo scores-hlo.csv
+├── data\
+│   ├── database\    
+│   │     ├── total_battle_chests.db   # UNICA base de datos de los registros de los cofres
+│   ├── reports\   
+│   │     ├── .txt/xls  # informes generados se guardan aqui en forma de ficheros txt y excel.
+├── logs\
+│   ├── .log\ #guardado de errores que pueden ocurrir  
+
 C:\Chest-Counter\
    ├── bin\
    │     tb_tracker.py              # PROGRAMA PRINCIPAL/backend

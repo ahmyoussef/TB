@@ -1,8 +1,0 @@
---------------- 2026-01-14 21:12:04 --------------------------
-chest Gravelbeard Level 10 Crypt
-fo
-3 h 34 m
---- WARNING: The user has asked to redo the capture so watch for duplicates.
---------------- 2026-01-14 21:12:18 --------------------------
-Bone Chest From: Gravelbeard Source: Level 10 Crypt
-3 h : 33 m

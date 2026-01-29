@@ -6,8 +6,7 @@
 # see your configuration file config/config.cfg for $clanname!
     $clanname1 = 'HALO'
     $clanname2 = 'Your 2nd clan'
-    $clanname3 = 'Your 3rd clan'3
-    
+    $clanname3 = 'Your 3rd clan'
     $clanname4 = 'Your 4th clan'
 
 # -- Correct install-path, if needed --
@@ -24,6 +23,152 @@
         $players_c3   = $main + "config\players-c3.csv"
         $players_c4   = $main + "config\players-c4.csv"
         Set-Location -Path $path
+# ============================================================================
+# LANGUAGE SELECTION MODULE - NUEVO
+# ============================================================================
+
+function Get-GameLanguage {
+    param(
+        [string]$ConfigPath = "..\config\config-c1.cfg"
+    )
+    
+    Clear-Host
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host "  TOTAL BATTLE - GAME LANGUAGE SELECTION" -ForegroundColor Yellow
+    Write-Host "  SELECCIÓN DE IDIOMA DEL JUEGO" -ForegroundColor Yellow
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "In which language is your Total Battle game running?" -ForegroundColor White
+    Write-Host "¿En qué idioma está ejecutándose tu juego Total Battle?" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  [1] English" -ForegroundColor Green
+    Write-Host "  [2] Español" -ForegroundColor Green
+    Write-Host "  [3] Français" -ForegroundColor Green
+    Write-Host "  [4] Deutsch" -ForegroundColor Green
+    Write-Host "  [5] Português" -ForegroundColor Green
+    Write-Host "  [6] Русский" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Leer idioma guardado previamente (si existe)
+    $savedLang = $null
+    if (Test-Path $ConfigPath) {
+        $configContent = Get-Content $ConfigPath
+        foreach ($line in $configContent) {
+            if ($line -match "^game_language\s*=\s*(.+)$") {
+                $savedLang = $Matches[1].Trim()
+                break
+            }
+        }
+    }
+    
+    # Mostrar idioma previamente seleccionado
+    if ($savedLang) {
+        $langNames = @{
+            'en' = 'English'
+            'es' = 'Español'
+            'fr' = 'Français'
+            'de' = 'Deutsch'
+            'pt' = 'Português'
+            'ru' = 'Русский'
+        }
+        $langName = $langNames[$savedLang]
+        Write-Host "Last used language: $langName ($savedLang)" -ForegroundColor Yellow
+        Write-Host "Press ENTER to use it again, or select a new one" -ForegroundColor Yellow
+        Write-Host ""
+    }
+    
+    while ($true) {
+        $choice = Read-Host "Select language [1-6] or [ENTER for default]"
+        
+        # Si presiona ENTER y hay idioma guardado, usarlo
+        if ([string]::IsNullOrWhiteSpace($choice) -and $savedLang) {
+            Write-Host ""
+            Write-Host "✅ Using saved language: $savedLang" -ForegroundColor Green
+            Write-Host ""
+            Start-Sleep -Milliseconds 1500
+            return $savedLang
+        }
+        
+        # Mapeo de opciones a códigos de idioma
+        $langMap = @{
+            '1' = 'en'
+            '2' = 'es'
+            '3' = 'fr'
+            '4' = 'de'
+            '5' = 'pt'
+            '6' = 'ru'
+        }
+        
+        if ($langMap.ContainsKey($choice)) {
+            $selectedLang = $langMap[$choice]
+            
+            # Guardar en config
+            Save-GameLanguage -ConfigPath $ConfigPath -Language $selectedLang
+            
+            Write-Host ""
+            Write-Host "✅ Selected: $selectedLang" -ForegroundColor Green
+            Write-Host ""
+            Start-Sleep -Milliseconds 1500
+            return $selectedLang
+        }
+        elseif ([string]::IsNullOrWhiteSpace($choice)) {
+            # Si no hay idioma guardado, usar inglés por defecto
+            Write-Host ""
+            Write-Host "✅ Using default: en (English)" -ForegroundColor Green
+            Write-Host ""
+            Start-Sleep -Milliseconds 1500
+            return 'en'
+        }
+        else {
+            Write-Host "❌ Invalid choice. Please select 1-6" -ForegroundColor Red
+            Write-Host ""
+        }
+    }
+}
+
+function Save-GameLanguage {
+    param(
+        [string]$ConfigPath,
+        [string]$Language
+    )
+    
+    if (Test-Path $ConfigPath) {
+        # Leer config existente
+        $configLines = Get-Content $ConfigPath
+        $found = $false
+        
+        # Buscar y actualizar línea existente
+        for ($i = 0; $i -lt $configLines.Count; $i++) {
+            if ($configLines[$i] -match "^game_language\s*=") {
+                $configLines[$i] = "game_language = $Language"
+                $found = $true
+                break
+            }
+        }
+        
+        # Si no existe, agregar al final
+        if (-not $found) {
+            $configLines += "game_language = $Language"
+        }
+        
+        # Guardar
+        $configLines | Set-Content $ConfigPath
+    }
+}
+
+# ============================================================================
+# EJECUTAR SELECTOR DE IDIOMA AL INICIO
+# ============================================================================
+
+# Obtener idioma del juego (solo si no está en modo de calibración)
+$global:GameLanguage = Get-GameLanguage -ConfigPath "..\config\config-c1.cfg"
+
+# ============================================================================
+# FIN DEL MÓDULO DE IDIOMA
+# ============================================================================
 
     Start-Sleep -Milliseconds 500
     write-host "========================================================" -foregroundcolor Cyan
@@ -65,37 +210,39 @@
     
     $value = $null
     $value = Read-Host "Choose [1-9] [C-E-R-S] [i-y-p-u-v] or [x] "
-   
+
+   # Sección [1] - Capture Chests
     if ($value -eq 1)
-        {Clear-Host
+    {
+        Clear-Host
         write-host ""
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor green
+        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor green
         write-host ">> ! CHECK ! Are you in the RIGHT CLAN to capture the <<" -foregroundcolor yellow
         write-host ">> Chests? All the values from the Gift-Screen get    <<" -foregroundcolor yellow
         write-host ">> added to your new or existing capture-file.        <<" -foregroundcolor yellow
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor green
+        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor green
         write-host ">> Your Clan : $clanname1" -foregroundcolor white
+        write-host ">> Game Language: $global:GameLanguage" -foregroundcolor Cyan  # NUEVO
         write-host ">> Chest Counter started!" -foregroundcolor white
         write-host "" -foregroundcolor yellow
-        py .\tb.py --config '..\config\config-c1.cfg' --capture}
+        
+        # MODIFICADO: Agregar --language
+        py .\tb.py --config '..\config\config-c1.cfg' --language $global:GameLanguage --capture
+    }
 
+    # Sección [2] - Summary Score
     elseif ($value -eq 2)
-        {Clear-Host
+    {
+        Clear-Host
         write-host ""
         write-host ">> Your Clan : $clanname1" -foregroundcolor white
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
-        write-host ">> Summary Score as example for a day from 7pm to 7pm <<" -foregroundcolor yellow
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
-        write-host ">> In your data-folder there are new created summary- <<" -foregroundcolor green
-        write-host ">> files. If this is your final-summary for today,    <<" -foregroundcolor green
-        write-host ">> than delete the capture-file to start a new one.   <<" -foregroundcolor green
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
-        write-host ">>> Summary Files in Process!                        <<<" -foregroundcolor yellow
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
-        write-host ""
-        write-host ""
-        write-host ""
-        py .\tb.py --config '..\config\config-c1.cfg' --process --summary}
+        write-host ">> Game Language: $global:GameLanguage" -foregroundcolor Cyan  # NUEVO
+        # ... resto del código ...
+        
+        # MODIFICADO: Agregar --language
+        py .\tb.py --config '..\config\config-c1.cfg' --language $global:GameLanguage --process --summary
+    }
+
     
     elseif ($value -eq 3)
         {Clear-Host
@@ -150,26 +297,37 @@
         Start-Sleep -Milliseconds 5000
         & ".\tb-c1-en.ps1"}
 
+    # Sección [5] - Calibration
     elseif ($value -eq 5)
-        {Clear-Host
+    {
+        Clear-Host
         write-host "" -foregroundcolor yellow
         write-host "Chest Screen calibration started!" -foregroundcolor yellow
+        write-host "Game Language: $global:GameLanguage" -foregroundcolor Cyan  # NUEVO
         write-host "" -foregroundcolor yellow
-        py .\tb.py --config '..\config\config-c1.cfg' --calibrate}
+        
+        # MODIFICADO: Agregar --language
+        py .\tb.py --config '..\config\config-c1.cfg' --language $global:GameLanguage --calibrate
+    }
     
+    # Sección [6] - Summary from a day
     elseif ($value -eq 6)
-        {Clear-Host
+    {
+        Clear-Host
         write-host ""
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
+        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
         write-host ">>> SUMMARY FROM A DAY ONLY, MUST BE IN ARCHIVE!     <<<" -foregroundcolor yellow
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
+        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
         write-host ">>> The Day must be written as example : 2025-10-28  <<<" -foregroundcolor yellow
-        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
+        write-host ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" -foregroundcolor yellow
         write-host ""
         $day = Read-Host "Year-Month-Day or x"
         if ($day -eq 'x'){& ".\tb-c1-en.ps1"}
-        else {py .\tb.py --config '..\config\config-c1.cfg' --process --summary --start_date $day --end_date $day}
+        else {
+            # MODIFICADO: Agregar --language
+            py .\tb.py --config '..\config\config-c1.cfg' --language $global:GameLanguage --process --summary --start_date $day --end_date $day
         }
+    }
 
     elseif ($value -eq 7)
         {& ".\tb-c2-en.ps1"}
