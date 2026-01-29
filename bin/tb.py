@@ -1,6 +1,5 @@
-# tb.py -- deepseek.ai
+# tb.py --
 # 1. IMPORTS Y CONFIGURACIÓN GLOBAL ----------------------------------------------------------------------
-
 from logging import captureWarnings
 from pathlib import Path
 import sys

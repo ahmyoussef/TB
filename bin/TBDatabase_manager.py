@@ -1,6 +1,6 @@
 """
 TBDatabase_manager.py - Production-Grade Database Layer for TB Chest Tracking System
-Version: 1.0.0
+Version: 1.1.0
 Author: Total Battle OCR Team
 Date: 2026-01-14
 
@@ -11,7 +11,6 @@ ARCHITECTURAL PRINCIPLES:
 - Connection pooling for performance
 - Comprehensive error handling
 - Audit trail for all corrections
-
 DATABASE FILE: data/databases/TB_chests_clans.db
 """
 
